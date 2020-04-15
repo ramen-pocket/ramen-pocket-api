@@ -1,0 +1,35 @@
+# https://github.com/awslabs/serverless-application-model/blob/develop/versions/2016-10-31.md
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Stage:
+    Type: String
+  ProjectName:
+    Type: String
+
+Globals:
+  Function:
+    Runtime: nodejs8.10
+    Timeout: 180
+    Tracing: Active
+
+Resources:
+  Hello:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: hello.default
+      CodeUri: ./dist/hello
+
+  ExampleTable:
+    TableName: !Sub ${ProjectName}-exampletable-${Stage}
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+
+Outputs:
+  ExampleTableArn:
+    Description: Example Table ARN
+    Value: !GetAtt ExampleTable.Arn
