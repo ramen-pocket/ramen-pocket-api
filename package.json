@@ -1,14 +1,15 @@
 {
-  "name": "my-sample-project",
+  "name": "ramen-pocket",
   "version": "1.0.0",
-  "description": "",
+  "description": "A serverless API service for Ramen Pocket",
   "typings": "dist/types/index.d.ts",
   "scripts": {
     "start": "webpack -w",
     "test": "jest",
     "build": "NODE_ENV=${NODE_ENV:-production} webpack",
     "package": "sam package --template-file template.yaml --s3-bucket $npm_package_name-${STAGE:-dev} --output-template-file template.packaged.yaml",
-    "deploy": "sam deploy --template-file template.packaged.yaml --stack-name $npm_package_name-${STAGE:-dev} --capabilities CAPABILITY_IAM --parameter-override Stage=${STAGE:-dev} ProjectName=$npm_package_name --no-fail-on-empty-changeset",
+    "deploy": "sam deploy --guided --template-file template.packaged.yaml --stack-name $npm_package_name-${STAGE:-dev} --capabilities CAPABILITY_IAM --parameter-overrides Stage=${STAGE:-dev} ProjectName=$npm_package_name --no-fail-on-empty-changeset",
+    "update": "sam deploy --template-file template.packaged.yaml --stack-name $npm_package_name-${STAGE:-dev} --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset",
     "clean": "rm -rf -v dist/*"
   },
   "repository": {},

@@ -1,35 +1,75 @@
-# https://github.com/awslabs/serverless-application-model/blob/develop/versions/2016-10-31.md
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
+Description: Request
 
 Parameters:
-  Stage:
-    Type: String
   ProjectName:
     Type: String
+    Default: ramen-pocket
+  Stage:
+    Type: String
+    Default: dev
+  DomainName:
+    Type: String
+  CertificateARN:
+    Type: String
+    Description: The ARN of a certificate for the custom domain.
+  CognitoUserPoolARN:
+    Type: String
+    Description: The ARN of a Cognito User Pool used for authentication.
 
 Globals:
+  Api:
+    Name: ramen-pocket-api
+    EndpointConfiguration: REGIONAL
+    Domain:
+      CertificateArn: !Ref CertificateARN
+      DomainName: !Ref DomainName
+    Auth:
+      Authorizers:
+        CognitoAuthorizor:
+          AuthType: COGNITO_USER_POOLS
+          UserPoolArn: !Ref CognitoUserPoolARN
+    Cors:
+      AllowOrigin: !Join ['', ["'", !Ref DomainName, "'"]]
+      AllowCredentials: True
   Function:
-    Runtime: nodejs8.10
+    Runtime: nodejs10.x
     Timeout: 180
-    Tracing: Active
+    Handler: index.default
+    MemorySize: 128
+    Environment:
+      Variables:
+        PROJECT_NAME: !Ref ProjectName
+        STAGE: !Ref Stage
+    Tags:
+      Owner: Ramen Pocket Dev Team
 
 Resources:
-  Hello:
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PROVISIONED
+      KeySchema:
+        - AttributeName: name
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: name
+          AttributeType: S
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: ramen-pocket
+      Tags:
+        - Key: Owner
+          Value: Ramen Pocket Dev Team
+  ReadHealth:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: hello.default
-      CodeUri: ./dist/hello
-
-  ExampleTable:
-    TableName: !Sub ${ProjectName}-exampletable-${Stage}
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      PrimaryKey:
-        Name: id
-        Type: String
-
-Outputs:
-  ExampleTableArn:
-    Description: Example Table ARN
-    Value: !GetAtt ExampleTable.Arn
+      CodeUri: ./dist/lambdas/read-health
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /health
+            Method: GET
