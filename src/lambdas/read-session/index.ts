@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { createConnection } from 'mariadb';
+import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
 
 const { DB_HOST, DB_USERNAME, DB_PASSWORD, DB_DATABASE } = process.env;
 
@@ -16,32 +17,14 @@ export default async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResul
   const { headers } = event;
   const token = headers['Authorization'];
   if (!token) {
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'text/plain',
-      },
-      body: 'unauthorized',
-    };
+    return ResponseBuilder.createUnauthorized();
   }
 
   const [result] = await conn.query(SQL_SCRIPT, [token]);
 
   if (result.count > 0) {
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'text/plain',
-      },
-      body: 'authorized',
-    };
+    return new ResponseBuilder(HttpCode.OK).build();
   } else {
-    return {
-      statusCode: 401,
-      headers: {
-        'Content-Type': 'text/plain',
-      },
-      body: 'unauthorized',
-    };
+    return ResponseBuilder.createUnauthorized();
   }
 };
