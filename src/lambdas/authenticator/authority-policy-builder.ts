@@ -62,7 +62,7 @@ export class AuthorityPolicyBuilder {
    * @param resource The conditions object in the format specified by the AWS docs.
    */
   private addMethod(effect: PolicyEffect, verb: HttpVerb, resource: string, conditions: Condition) {
-    if (AuthorityPolicyBuilder.PATH_REGEX.test(resource)) {
+    if (!AuthorityPolicyBuilder.PATH_REGEX.test(resource)) {
       throw new Error(
         `Invalid resource path: ${resource}. Path should match ${AuthorityPolicyBuilder.PATH_REGEX}`,
       );
@@ -115,7 +115,7 @@ export class AuthorityPolicyBuilder {
       Action: AuthorityPolicyBuilder.STATEMENT_ACTION,
       Effect: effect,
       Resource: [],
-      Condition: null,
+      Condition: undefined,
     };
   }
 

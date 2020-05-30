@@ -51,5 +51,8 @@ export default async (event: CustomAuthorizerEvent): Promise<CustomAuthorizerRes
 
   authorityPolicyBuilder.allowAllMethods();
 
-  return authorityPolicyBuilder.build();
+  const response: CustomAuthorizerResult = authorityPolicyBuilder.build();
+  response.context = { userId: principalId };
+
+  return response;
 };
