@@ -32,6 +32,10 @@ export class ResponseBuilder {
   private headers: Headers;
   private body: string;
 
+  public static setup(): ResponseBuilder {
+    return new ResponseBuilder();
+  }
+
   public static createNotContent(): APIGatewayProxyResult {
     return {
       statusCode: HttpCode.NoContent,
@@ -103,10 +107,13 @@ export class ResponseBuilder {
       case 'string':
         this.body = value as string;
       case 'number':
+        this.headers[HeaderTypes.ContentType] = ContentTypes.TextPlain;
         this.body = JSON.stringify(value);
       case 'boolean':
+        this.headers[HeaderTypes.ContentType] = ContentTypes.TextPlain;
         this.body = JSON.stringify(value);
       case 'object':
+        this.headers[HeaderTypes.ContentType] = ContentTypes.ApplicationJson;
         this.body = JSON.stringify(value);
     }
     return this;
