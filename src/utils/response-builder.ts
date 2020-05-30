@@ -46,6 +46,16 @@ export class ResponseBuilder {
     };
   }
 
+  public static createBadRequest(reason: string = 'bad request'): APIGatewayProxyResult {
+    return {
+      statusCode: HttpCode.Unauthorized,
+      headers: {
+        [HeaderTypes.ContentType]: ContentTypes.ApplicationJson,
+      },
+      body: JSON.stringify({ reason }),
+    };
+  }
+
   public static createUnauthorized(reason: string = 'unauthorized'): APIGatewayProxyResult {
     return {
       statusCode: HttpCode.Unauthorized,

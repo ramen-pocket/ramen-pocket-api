@@ -164,3 +164,17 @@ Resources:
             Method: GET
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  CreateUserCollections:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/create-user-collections
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /user/collections
+            Method: POST
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
