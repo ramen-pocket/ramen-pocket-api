@@ -150,3 +150,17 @@ Resources:
             Method: GET
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  ReadUserCollections:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/read-user-collections
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /user/collections
+            Method: GET
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
