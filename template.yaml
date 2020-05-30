@@ -13,13 +13,15 @@ Parameters:
     Type: String
   ApiDomainName:
     Type: String
-  DBUsername:
-    Type: String
   LambdaRoleARN:
+    Type: String
+  DBUsername:
     Type: String
   DBPassword:
     Type: String
     NoEcho: true
+  GoogleClientId:
+    Type: String
   CertificateARN:
     Type: String
     Description: The ARN of a certificate for the custom domain.
@@ -51,6 +53,7 @@ Globals:
         DB_USERNAME: !Ref DBUsername
         DB_PASSWORD: !Ref DBPassword
         DB_DATABASE: ramen_pocket
+        GOOGLE_CLIENT_ID: !Ref GoogleClientId
     Tags:
       Owner: Ramen Pocket Dev Team
 

@@ -4,7 +4,7 @@ import { AwsArnComposition } from './aws-arn-composition';
 import { ApiGatewayArnComposition } from './api-gateway-arn-composition';
 import { AuthorityPolicyBuilder } from './authority-policy-builder';
 
-const { CLIENT_ID } = process.env;
+const { GOOGLE_CLIENT_ID } = process.env;
 
 export default async (event: CustomAuthorizerEvent): Promise<CustomAuthorizerResult> => {
   console.log(`Method ARN: ${event.methodArn}`);
@@ -14,7 +14,7 @@ export default async (event: CustomAuthorizerEvent): Promise<CustomAuthorizerRes
 
   // ===== Verify the token =====
   let principalId: string;
-  const authenticator = new Authenticator(CLIENT_ID);
+  const authenticator = new Authenticator(GOOGLE_CLIENT_ID);
 
   try {
     await authenticator.connectToDatabase();
