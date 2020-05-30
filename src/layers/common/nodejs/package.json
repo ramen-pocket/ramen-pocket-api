@@ -1,0 +1,15 @@
+{
+  "name": "common-layer",
+  "version": "1.0.0",
+  "description": "A lambda layer for all lambdas in the project Ramen Pocket",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "virtualprism",
+  "license": "MIT",
+  "dependencies": {
+    "mariadb": "^2.4.0",
+    "moment": "^2.26.0"
+  }
+}

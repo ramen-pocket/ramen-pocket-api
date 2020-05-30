@@ -2,6 +2,7 @@ const path = require('path');
 const { readFileSync } = require('fs');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const { yamlParse } = require('yaml-cfn');
+const nodeExternals = require('webpack-node-externals');
 
 const conf = {
   prodMode: process.env.NODE_ENV === 'production',
@@ -50,6 +51,7 @@ module.exports = {
     filename: '[name].js',
     libraryTarget: 'commonjs2',
   },
+  externals: [nodeExternals()],
   devtool: 'source-map',
   plugins: conf.prodMode
     ? [

@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
-Description: Request
+Description: A serverless API service for the project Ramen Pocket
 
 Parameters:
   ProjectName:
@@ -9,14 +9,20 @@ Parameters:
   Stage:
     Type: String
     Default: dev
-  DomainName:
+  TopDomainName:
     Type: String
+  ApiDomainName:
+    Type: String
+  DBUsername:
+    Type: String
+  LambdaRoleARN:
+    Type: String
+  DBPassword:
+    Type: String
+    NoEcho: true
   CertificateARN:
     Type: String
     Description: The ARN of a certificate for the custom domain.
-  CognitoUserPoolARN:
-    Type: String
-    Description: The ARN of a Cognito User Pool used for authentication.
 
 Globals:
   Api:
@@ -24,52 +30,106 @@ Globals:
     EndpointConfiguration: REGIONAL
     Domain:
       CertificateArn: !Ref CertificateARN
-      DomainName: !Ref DomainName
+      DomainName: !Ref ApiDomainName
     Auth:
       Authorizers:
-        CognitoAuthorizor:
-          AuthType: COGNITO_USER_POOLS
-          UserPoolArn: !Ref CognitoUserPoolARN
+        LambdaTokenAuthorizer:
+          FunctionArn: !GetAtt Authenticator.Arn
     Cors:
-      AllowOrigin: !Join ['', ["'", !Ref DomainName, "'"]]
+      AllowOrigin: !Join ['', ["'", !Ref TopDomainName, "'"]]
       AllowCredentials: True
   Function:
     Runtime: nodejs10.x
-    Timeout: 180
+    Timeout: 60
     Handler: index.default
     MemorySize: 128
     Environment:
       Variables:
         PROJECT_NAME: !Ref ProjectName
         STAGE: !Ref Stage
+        DB_HOST: !GetAtt Database.Endpoint.Address
+        DB_USERNAME: !Ref DBUsername
+        DB_PASSWORD: !Ref DBPassword
+        DB_DATABASE: ramen_pocket
     Tags:
       Owner: Ramen Pocket Dev Team
 
+Outputs:
+  DatabaseEndpoint:
+    Description: The endpoint of the RDS instance
+    Value: !GetAtt Database.Endpoint.Address
+
 Resources:
-  DynamoDBTable:
-    Type: AWS::DynamoDB::Table
+  DatabaseVPCSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      BillingMode: PROVISIONED
-      KeySchema:
-        - AttributeName: name
-          KeyType: HASH
-      AttributeDefinitions:
-        - AttributeName: name
-          AttributeType: S
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-      TableName: ramen-pocket
+      GroupDescription: A VPC security group for the database.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 3306
+          ToPort: 3306
+  Database:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.t2.micro
+      AllocatedStorage: '20'
+      AvailabilityZone: us-east-1a
+      BackupRetentionPeriod: 0
+      DBName: ramen_pocket
+      DeleteAutomatedBackups: true
+      DeletionProtection: false
+      EnablePerformanceInsights: false
+      Engine: mariadb
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      MonitoringInterval: 0
+      MultiAZ: false
+      Port: 3306
+      StorageType: standard
+      VPCSecurityGroups:
+        - !GetAtt DatabaseVPCSecurityGroup.GroupId
       Tags:
         - Key: Owner
           Value: Ramen Pocket Dev Team
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      CompatibleRuntimes: [nodejs10.x]
+      ContentUri: ./dist/layers/common.zip
+  OAuthLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      CompatibleRuntimes: [nodejs10.x]
+      ContentUri: ./dist/layers/oauth.zip
+  Authenticator:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/authenticator
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
+  ReadSession:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/read-session
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /session
+            Method: GET
   ReadHealth:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/read-health
+      Role: !Ref LambdaRoleARN
       Events:
         APIGateway:
           Type: Api
           Properties:
             Path: /health
             Method: GET
+            Auth:
+              Authorizer: LambdaTokenAuthorizer

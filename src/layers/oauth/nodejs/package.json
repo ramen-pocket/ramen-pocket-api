@@ -1,0 +1,14 @@
+{
+  "name": "ramen-pocket-oauth-layer",
+  "version": "1.0.0",
+  "description": "An OAuth lambda layer for the project Ramen Pocket",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "virtualprism",
+  "license": "MIT",
+  "dependencies": {
+    "google-auth-library": "^6.0.0"
+  }
+}
