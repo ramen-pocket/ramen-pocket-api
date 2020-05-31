@@ -192,3 +192,17 @@ Resources:
             Method: GET
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  ReadSpecifiedUserProfile:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/read-specified-user-profile
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /users/{id}/profile
+            Method: GET
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
