@@ -31,7 +31,12 @@ export class DatabaseConnection {
       throw new Error('Already connected to the database.');
     }
 
-    this.connection = await createConnection(this.options);
+    this.connection = await createConnection({
+      host: this.options.host,
+      user: this.options.username,
+      password: this.options.password,
+      database: this.options.database,
+    });
   }
 
   public async disconnect() {
