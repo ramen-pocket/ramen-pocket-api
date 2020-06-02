@@ -220,3 +220,17 @@ Resources:
             Method: GET
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  ReadSpecifiedUserComments:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/read-specified-user-comments
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /users/{id}/comments
+            Method: GET
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
