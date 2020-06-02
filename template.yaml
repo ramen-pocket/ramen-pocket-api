@@ -38,7 +38,7 @@ Globals:
         LambdaTokenAuthorizer:
           FunctionArn: !GetAtt Authenticator.Arn
     Cors:
-      AllowOrigin: !Join ['', ["'", !Ref TopDomainName, "'"]]
+      AllowOrigin: !Join ["", ["'", !Ref TopDomainName, "'"]]
       AllowCredentials: True
   Function:
     Runtime: nodejs10.x
@@ -76,7 +76,7 @@ Resources:
     Type: AWS::RDS::DBInstance
     Properties:
       DBInstanceClass: db.t2.micro
-      AllocatedStorage: '20'
+      AllocatedStorage: "20"
       AvailabilityZone: us-east-1a
       BackupRetentionPeriod: 0
       DBName: ramen_pocket
@@ -203,6 +203,20 @@ Resources:
           Type: Api
           Properties:
             Path: /users/{id}/profile
+            Method: GET
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
+  ReadSpecifiedUserCollections:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/read-specified-user-collections
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /users/{id}/collections
             Method: GET
             Auth:
               Authorizer: LambdaTokenAuthorizer

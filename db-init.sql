@@ -88,3 +88,17 @@ CREATE TABLE IF NOT EXISTS commentedCourses (
   PRIMARY KEY (name, commentId),
   FOREIGN KEY (commentId) REFERENCES comments (id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS tags (
+  id INT NOT NULL,
+  name VARCHAR(255),
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS storeTags (
+  storeId INT NOT NULL,
+  tagId INT NOT NULL,
+  PRIMARY KEY (storeId, tagId),
+  FOREIGN KEY (storeId) REFERENCES stores (id) ON DELETE CASCADE,
+  FOREIGN KEY (tagId) REFERENCES tags (id) ON DELETE CASCADE
+);
