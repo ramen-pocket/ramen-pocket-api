@@ -33,6 +33,10 @@ Globals:
     Domain:
       CertificateArn: !Ref CertificateARN
       DomainName: !Ref ApiDomainName
+    GatewayResponses:
+      DEFAULT_4XX:
+        ResponseTemplates:
+          application/json: '{"reason": $context.error.messageString}'
     Auth:
       Authorizers:
         LambdaTokenAuthorizer:
