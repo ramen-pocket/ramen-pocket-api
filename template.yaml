@@ -266,3 +266,17 @@ Resources:
             Method: GET
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  CreateStoreComment:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/create-store-comment
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /stores/{id}/comments
+            Method: POST
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
