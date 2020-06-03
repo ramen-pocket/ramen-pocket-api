@@ -39,8 +39,8 @@ CREATE TABLE IF NOT EXISTS businessHours (
   day TINYINT NOT NULL,
   storeId INT NOT NULL,
   off BOOLEAN NOT NULL,
-  begin TINYINT NOT NULL,
-  end TINYINT NOT NULL,
+  begin DOUBLE NOT NULL,
+  end DOUBLE NOT NULL,
   PRIMARY KEY (day, storeId),
   FOREIGN KEY (storeId) REFERENCES stores (id) ON DELETE CASCADE
 );
