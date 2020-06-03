@@ -49,4 +49,8 @@ export class DatabaseConnection {
   public async query(script: string, parameters?: any[]) {
     return this.connection.query(script, parameters);
   }
+
+  public async batch(script: string, parameters?: any[]) {
+    return this.connection.batch(script, parameters);
+  }
 }
