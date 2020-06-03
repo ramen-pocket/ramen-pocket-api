@@ -238,3 +238,17 @@ Resources:
             Method: GET
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  ReadStores:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/read-stores
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /stores
+            Method: GET
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
