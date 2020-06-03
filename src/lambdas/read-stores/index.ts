@@ -15,7 +15,7 @@ export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayPr
   const { authorizer } = event.requestContext;
   const { userId } = authorizer;
   const queryParameters = event.queryStringParameters || {};
-  const rawLimit = queryParameters.limit || '0';
+  const rawLimit = queryParameters.limit || '10';
   const rawSkip = queryParameters.skip || '0';
 
   // Validation & Transformation
@@ -26,6 +26,10 @@ export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayPr
   if (!success) {
     return ResponseBuilder.createUnauthorized(
       'The query parameter limit must be an positive integer or zero.',
+    );
+  } else if (limit > 100) {
+    return ResponseBuilder.createUnauthorized(
+      'The value of the query parameter limit must be less than or equal to 100.',
     );
   }
 
