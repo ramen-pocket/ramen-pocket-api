@@ -59,7 +59,7 @@ export class Authenticator {
     const [user] = results;
     this.userId = user.id;
 
-    return !user.expire || moment.utc(user.expire).valueOf() < moment.utc().valueOf();
+    return user.expire && moment.utc().valueOf() < moment.utc(user.expire).valueOf();
   }
 
   async verifyByGoogle(token: string): Promise<boolean> {
