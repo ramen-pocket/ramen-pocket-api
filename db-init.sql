@@ -1,4 +1,6 @@
-CREATE DATABASE IF NOT EXISTS ramen_pocket;
+CREATE DATABASE IF NOT EXISTS ramen_pocket
+  CHARACTER SET = 'utf8mb4'
+  COLLATE = 'utf8mb4_bin';
 
 USE ramen_pocket;
 
@@ -8,7 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
   avatar VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL,
   points INT NOT NULL DEFAULT 0,
-  token VARCHAR(255) NULL,
+  token VARCHAR(2047) NULL,
+  tokenExpire DATETIME NULL,
   expire DATETIME NULL,
   PRIMARY KEY (id)
 );
@@ -26,7 +29,7 @@ CREATE TABLE IF NOT EXISTS stores (
 );
 
 CREATE TABLE IF NOT EXISTS images (
-  url VARCHAR(2047) NOT NULL,
+  url VARCHAR(767) NOT NULL,
   storeId INT NOT NULL,
   PRIMARY KEY (url, storeId),
   FOREIGN KEY (storeId) REFERENCES stores (id) ON DELETE CASCADE

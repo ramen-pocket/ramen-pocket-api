@@ -1,5 +1,6 @@
 import { createPool, PoolConnection } from 'mariadb';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
+import { DATETIME_FORMATE } from '../../constants/database';
 import moment from 'moment';
 
 const { DB_HOST, DB_USERNAME, DB_PASSWORD, DB_DATABASE } = process.env;
@@ -20,9 +21,10 @@ export class Authenticator {
     'SELECT COUNT(*) AS count FROM users WHERE id = ?';
 
   private static readonly UPDATE_TOKEN_SQL_SCRIPT =
-    'UPDATE users SET token = ?, expire = ? WHERE id = ?';
+    'UPDATE users SET token = ?, tokenExpire = ?, expire = ? WHERE id = ?';
 
-  private static readonly CREATE_USER_SQL_SCRIPT = 'INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)';
+  private static readonly CREATE_USER_SQL_SCRIPT =
+    'INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
 
   private googleClientId: string;
   private googleClient: OAuth2Client;
@@ -57,7 +59,7 @@ export class Authenticator {
     const [user] = results;
     this.userId = user.id;
 
-    return !user.expire || user.expire < Date.now();
+    return !user.expire || moment.utc(user.expire).valueOf() < moment.utc().valueOf();
   }
 
   async verifyByGoogle(token: string): Promise<boolean> {
@@ -92,10 +94,22 @@ export class Authenticator {
     }
   }
 
+  private calculateTokenExpireTime(expire: number): string {
+    return moment.unix(expire).format(DATETIME_FORMATE);
+  }
+
+  private calculateExpireTime(): string {
+    return moment
+      .utc()
+      .add(1, 'day')
+      .format(DATETIME_FORMATE);
+  }
+
   private async updateTokenData(userId: string, token: string, expire: number) {
     await this.connection.query(Authenticator.UPDATE_TOKEN_SQL_SCRIPT, [
       token,
-      moment.utc(expire),
+      this.calculateTokenExpireTime(expire),
+      this.calculateExpireTime(),
       userId,
     ]);
   }
@@ -109,7 +123,8 @@ export class Authenticator {
       email,
       0,
       token,
-      exp,
+      this.calculateTokenExpireTime(exp),
+      this.calculateExpireTime(),
     ]);
   }
 
