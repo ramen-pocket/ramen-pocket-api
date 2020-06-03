@@ -252,3 +252,17 @@ Resources:
             Method: GET
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  ReadStoreComments:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/read-stores-comments
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /stores/{id}/comments
+            Method: GET
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
