@@ -178,7 +178,7 @@ Resources:
         APIGateway:
           Type: Api
           Properties:
-            Path: /user/collections
+            Path: /user/collections/{storeId}
             Method: POST
             Auth:
               Authorizer: LambdaTokenAuthorizer

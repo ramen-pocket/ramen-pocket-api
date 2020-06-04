@@ -3,35 +3,36 @@ import { DatabaseConnection } from '../../utils/database-connection';
 import { ExtendedAPIGatewayProxyEvent } from '../../interfaces/extended-api-gateway-proxy-event';
 import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
 
-const SQL_SCRIPT_CHECK_STORE_EXIST = 'SELECT COUNT(*) AS count FROM stores WHERE id = ?';
-const SQL_SCRIPT_CHECK_COLLECTION_EXIST =
-  'SELECT COUNT(*) AS count FROM collections WHERE userId = ? AND storeId = ?';
-const SQL_SCRIPT_ADD_COLLECTION = 'INSERT INTO collections VALUES (?, ?)';
-
-interface Payload {
-  id?: number;
-}
-
+type TransformationResult<T> = [boolean, T];
 interface Counter {
   count: number;
 }
 
+const SQL_SCRIPT_CHECK_STORE_EXIST = 'SELECT COUNT(*) AS count FROM stores WHERE id = ?';
+
+const SQL_SCRIPT_CHECK_COLLECTION_EXIST =
+  'SELECT COUNT(*) AS count FROM collections WHERE userId = ? AND storeId = ?';
+
+const SQL_SCRIPT_ADD_COLLECTION = 'INSERT INTO collections VALUES (?, ?)';
+
+function transfromToPositiveInteger(value: string): TransformationResult<number> {
+  const result = Number(value);
+  return [Number.isInteger(result) && result >= 0, result];
+}
+
 export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { requestContext, body } = event;
+  const { requestContext, pathParameters } = event;
   const { userId } = requestContext.authorizer;
+  const { storeId: rawStoreId } = pathParameters;
+  let success: boolean, storeId: number;
 
-  let payload: Payload;
-  try {
-    payload = JSON.parse(body);
-  } catch (err) {
-    return ResponseBuilder.createBadRequest('Incorrect request format.');
+  [success, storeId] = transfromToPositiveInteger(rawStoreId);
+  if (!success) {
+    return ResponseBuilder.createBadRequest(
+      'The paramter storeId must be a positive integer or zero.',
+    );
   }
 
-  if (typeof payload.id !== 'number' || !Number.isInteger(payload.id)) {
-    return ResponseBuilder.createBadRequest('id should be an integer.');
-  }
-
-  const storeId = payload.id;
   const connection = new DatabaseConnection();
   try {
     await connection.connect();
