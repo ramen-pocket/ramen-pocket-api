@@ -182,6 +182,20 @@ Resources:
             Method: POST
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  DeleteUserCollection:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/delete-user-collection
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /user/collections/{storeId}
+            Method: DELETE
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
   ReadUserComments:
     Type: AWS::Serverless::Function
     Properties:
