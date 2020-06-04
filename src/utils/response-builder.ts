@@ -48,7 +48,7 @@ export class ResponseBuilder {
 
   public static createBadRequest(reason: string = 'bad request'): APIGatewayProxyResult {
     return {
-      statusCode: HttpCode.Unauthorized,
+      statusCode: HttpCode.BadRequest,
       headers: {
         [HeaderTypes.ContentType]: ContentTypes.ApplicationJson,
       },
