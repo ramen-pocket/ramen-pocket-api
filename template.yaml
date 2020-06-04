@@ -294,3 +294,17 @@ Resources:
             Method: PUT
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  DeleteStoreComment:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/delete-store-comment
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /stores/{storeId}/comments/{commentId}
+            Method: DELETE
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
