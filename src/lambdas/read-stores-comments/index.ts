@@ -12,7 +12,7 @@ function transfromToPositiveInteger(value: string): TransformationResult {
 }
 
 export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { id: rawStoreId } = event.pathParameters;
+  const { storeId: rawStoreId } = event.pathParameters;
   const queryParameters = event.queryStringParameters || {};
   const rawLimit = queryParameters.limit || '10';
   const rawSkip = queryParameters.skip || '0';

@@ -262,7 +262,7 @@ Resources:
         APIGateway:
           Type: Api
           Properties:
-            Path: /stores/{id}/comments
+            Path: /stores/{storeId}/comments
             Method: GET
             Auth:
               Authorizer: LambdaTokenAuthorizer
@@ -276,7 +276,21 @@ Resources:
         APIGateway:
           Type: Api
           Properties:
-            Path: /stores/{id}/comments
+            Path: /stores/{storeId}/comments
             Method: POST
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
+  UpdateStoreComment:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/update-store-comment
+      Role: !Ref LambdaRoleARN
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /stores/{storeId}/comments/{commentId}
+            Method: PUT
             Auth:
               Authorizer: LambdaTokenAuthorizer

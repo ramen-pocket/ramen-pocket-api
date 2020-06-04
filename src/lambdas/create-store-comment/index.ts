@@ -95,7 +95,7 @@ async function createCommentToDatabase(
 export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const { authorizer } = event.requestContext;
   const { userId } = authorizer;
-  const { id: rawStoreId } = event.pathParameters;
+  const { storeId: rawStoreId } = event.pathParameters;
   let storeId: number;
   let commentDto: CommentDto;
   let success: boolean;
