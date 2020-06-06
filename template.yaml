@@ -8,20 +8,23 @@ Parameters:
     Default: ramen-pocket
   Stage:
     Type: String
-    Default: dev
+    Default: production
   TopDomainName:
     Type: String
+    Description: A top domain you own and are going to use it for this application. (e.g. rameniac.org)
   ApiDomainName:
     Type: String
-  LambdaRoleARN:
-    Type: String
+    Description: A API domain you own and are going to use it for this application. It must be the same of or a subdomain of the top domain. (e.g. api.rameniac.org)
   DBUsername:
     Type: String
+    Description: The username of the database admin.
   DBPassword:
     Type: String
     NoEcho: true
+    Description: The password of the database admin.
   GoogleClientId:
     Type: String
+    Description: The client id of your Google OAuth Client.
   CertificateARN:
     Type: String
     Description: The ARN of a certificate for the custom domain.
@@ -40,7 +43,7 @@ Globals:
     Auth:
       Authorizers:
         LambdaTokenAuthorizer:
-          FunctionArn: !GetAtt Authenticator.Arn
+          FunctionArn: !GetAtt Authorizer.Arn
     Cors:
       AllowOrigin: !Join ["", ["'", !Ref TopDomainName, "'"]]
       AllowCredentials: True
@@ -67,6 +70,105 @@ Outputs:
     Value: !GetAtt Database.Endpoint.Address
 
 Resources:
+  IAMRoleForLambda:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Description: A role used by lambdas in the application Ramen Pocket. It enables the lambdas to log their activities to CloudWatch, which is useful for solving issues.
+  IAMRoleForEC2Initializer:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EC2ReadSpecifiedBucket
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource:
+                  Fn::Sub:
+                    - arn:aws:s3:::${BUCKET_NAME}
+                    - BUCKET_NAME: !Ref ProjectName
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource:
+                  Fn::Sub:
+                    - arn:aws:s3:::${BUCKET_NAME}/*
+                    - BUCKET_NAME: !Ref ProjectName
+      Description: For an EC2 instance in the application Ramen Pocket to have permission to get files from a bucket.
+  InstanceProfileForEC2Initializer:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref IAMRoleForEC2Initializer
+  EC2Initializer:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceInitiatedShutdownBehavior: terminate
+      CreditSpecification:
+        CPUCredits: standard
+      InstanceType: t2.micro
+      ImageId: ami-01d025118d8e760db
+      IamInstanceProfile: !Ref InstanceProfileForEC2Initializer
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            function perform {
+              echo Action: $2
+              $1
+              while [ $? != 0 ]; do
+                echo Failed to $2
+                echo Retry the attempt to $2 in $3
+                sleep $3
+                $1
+              done
+              echo
+            }
+            perform "sudo yum update -y" "update packages" 5s
+            perform "sudo yum install mysql -y" "install mysql" 5s
+            perform "aws s3 cp s3://${BUCKET_NAME}/db-init.sql db-init.sql" "download database initialization file" 5s
+
+            echo Action: initialize all tables in the database
+            mysql -h ${DB_HOST} -P ${DB_PORT} -u ${DB_USERNAME} --password=${DB_PASSWORD} ramen_pocket < db-init.sql
+            while [ $? != 0 ]; do
+              echo Failed to initialize all tables in the database
+              echo Retry the attempt to initialize all tables in the database in 10s
+              sleep 10s
+              mysql -h ${DB_HOST} -P ${DB_PORT} -u ${DB_USERNAME} --password=${DB_PASSWORD} ramen_pocket < db-init.sql
+            done
+            echo
+
+            echo Finished the database initailization.
+            echo Now terminating this instance ...
+            sudo poweroff
+          - BUCKET_NAME: !Ref ProjectName
+            DB_HOST: !GetAtt Database.Endpoint.Address
+            DB_PORT: !GetAtt Database.Endpoint.Port
+            DB_USERNAME: !Ref DBUsername
+            DB_PASSWORD: !Ref DBPassword
+      Tags:
+        - Key: Owner
+          Value: Ramen Pocket Dev Team
+        - Key: Description
+          Value: This instance is belonged to Ramen Pocket and used to initailize tables in the database.
   DatabaseVPCSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -109,42 +211,17 @@ Resources:
     Properties:
       CompatibleRuntimes: [nodejs10.x]
       ContentUri: ./dist/layers/oauth.zip
-  Authenticator:
+  Authorizer:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./dist/lambdas/authenticator
-      Role: !Ref LambdaRoleARN
+      CodeUri: ./dist/lambdas/authorizer
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer, !Ref OAuthLayer]
-  ReadSession:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./dist/lambdas/read-session
-      Role: !Ref LambdaRoleARN
-      Layers: [!Ref CommonLayer]
-      Events:
-        APIGateway:
-          Type: Api
-          Properties:
-            Path: /session
-            Method: GET
-  ReadHealth:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./dist/lambdas/read-health
-      Role: !Ref LambdaRoleARN
-      Events:
-        APIGateway:
-          Type: Api
-          Properties:
-            Path: /health
-            Method: GET
-            Auth:
-              Authorizer: LambdaTokenAuthorizer
   ReadUserProfile:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/read-user-profile
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -158,7 +235,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/read-user-collections
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -172,7 +249,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/create-user-collections
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -186,7 +263,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/delete-user-collection
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -200,7 +277,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/read-user-comments
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -214,7 +291,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/read-specified-user-profile
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -228,7 +305,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/read-specified-user-collections
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -242,7 +319,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/read-specified-user-comments
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -256,7 +333,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/read-stores
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -270,7 +347,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/read-stores-comments
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -284,7 +361,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/create-store-comment
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -298,7 +375,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/update-store-comment
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:
@@ -312,7 +389,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/lambdas/delete-store-comment
-      Role: !Ref LambdaRoleARN
+      Role: !GetAtt IAMRoleForLambda.Arn
       Layers: [!Ref CommonLayer]
       Events:
         APIGateway:

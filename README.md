@@ -56,8 +56,9 @@ To solve this problem, we have to create a SSL certificate for the custom domain
 ## Resources
 
 The list below presents all AWS resources this project uses:
-- **An IAM Role**
+- **Two IAM Roles**
   - An IAM role used by Lambdas so that they have permission to access AWS resources.
+  - The other IAM role is used by the EC2 instance, making it able to initialize the database.
 - **An EC2 Instance**
   - An EC2 instance whose type is `t2.micro` will be used to initialize all tables in the database. Once it finish the initialization, it will terminate itself.
 - **A VPC Security Group**
@@ -74,6 +75,60 @@ The list below presents all AWS resources this project uses:
 - **Certificate Manager**
   - A certificate record will be created to store the SSL certificate of the custom domain, and the record will be used by the API Gateway.
 
+## Deployment
+
+The following steps guide you to deploy this serverless API service on your AWS account.
+
+### Creating a record in AWS Certificate Manager
+Since this application uses Google Sign-In to identify and authorize users, a domain name is required.
+
+To make the API Gateway able to use the domain name and recognize the SSL connection, a certificate is required from a content-delivery-network service provider such as [*Amazon Cloudfront*](https://aws.amazon.com/cloudfront/) or [*Cloudflare*](https://www.cloudflare.com/).
+
+In this guide, we will use *Cloudflare* to accomplish this requirement.
+
+Please go to your Cloudflare dashboard, choose a domain to use, and refer to **step 6 to step 19** of [*this tutorial*](https://virtualprism.me/articles/post/2020/4/21/A%20note%20for%20using%20AWS%20API%20Gateway%20with%20Cloudflare) to create a new credential.
+
+Once you finish it, copy the ARN of the credential on the AWS Credential Manager page to the clipboard.
+
+We will use it in the next step.
+
+### Running Script
+Go to the root directory of this project and run the command `./deploy.sh PROJECT_NAME`, in which `PROJECT_NAME` is replaced by the name you want.
+
+The script in `deploy.sh` will create a bucket named `PROJECT_NAME` and upload `db-init.sql` to it.
+
+If it failed to create the bucket, change `PROJECT_NAME` and re-run the command since the bucket name has already taken by another user.
+
+Next, it will build the project, package the template, and commence the deployment.
+
+Notice that the parameter `ProjectName` must be the same as `PROJECT_NAME` and the value of `CertificateARN` is the ARN of the credential you just created.
+
+It will initiate the deployment after confirming the resource creation.
+
+The application will be ready after 5 to 10 minutes of the deployment process.
+
+### Updating Domain Record
+The finally step is to add a CNAME record to Cloudflare, making it point to the API Gateway.
+
+Go to the AWS API Gateway dashboard and choose `ramen-pocket-api`.
+
+Next, click **Stage** on the list on the left, choose **Prod**, and copy the domain name of the **Invoke URL**
+
+Lasty, create a CNAME record in which its content is the domain name you copied.
+
+Notice that it must matches the value of the parameter `ApiDomain` you entered during the deployment.
+
+*If you are still unsure how to do it, **step 2 to step 5** of [*this tutorial*](https://virtualprism.me/articles/post/2020/4/21/A%20note%20for%20using%20AWS%20API%20Gateway%20with%20Cloudflare) would be your help.*
+
+After it created, you should be able to access the API servcie.
+
+## Tearing Down
+*Be sure to back up all the data in the database before tearing down this application!*
+
+Two steps to tearing down this application:
+- On the Cloudformation dashboard, delete the stack with the project name you entered.
+- On the S3 dashboard, delete the bucket with the project name you entered.
+
 ## Commands
 
 Transpile TypeScript files in `src` into JavaScript in `dist`:
@@ -88,7 +143,7 @@ Package the template file `template.yaml` with AWS SAM tool, upload to a S3 buck
 npm run package
 ```
 
-Deploy this application to AWS:
+Deploy this application to AWS *for development*:
 
 ```bash
 npm run deploy
@@ -104,4 +159,9 @@ Clean the files in `dist`:
 
 ```bash
 npm run clean
+```
+
+Deploy this application to AWS *for production*:
+```bash
+./deploy.sh PROJECT_NAME
 ```
