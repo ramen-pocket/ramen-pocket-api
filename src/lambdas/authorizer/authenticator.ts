@@ -13,7 +13,7 @@ const pool = createPool({
   connectionLimit: 5,
 });
 
-export class Authenticator {
+export class Authorizer {
   private static readonly READ_TOKEN_EXPIRE_SQL_SCRIPT =
     'SELECT id, expire FROM users WHERE token = ?';
 
@@ -25,6 +25,8 @@ export class Authenticator {
 
   private static readonly CREATE_USER_SQL_SCRIPT =
     'INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+
+  private static readonly EXPIRE_DAYS = 30;
 
   private googleClientId: string;
   private googleClient: OAuth2Client;
@@ -49,9 +51,7 @@ export class Authenticator {
       throw new Error('No connection established.');
     }
 
-    const results = await this.connection.query(Authenticator.READ_TOKEN_EXPIRE_SQL_SCRIPT, [
-      token,
-    ]);
+    const results = await this.connection.query(Authorizer.READ_TOKEN_EXPIRE_SQL_SCRIPT, [token]);
     if (results.length <= 0) {
       return false;
     }
@@ -78,7 +78,7 @@ export class Authenticator {
       const expire = payload.exp;
       this.userId = userId;
 
-      const [result] = await this.connection.query(Authenticator.USER_CHECK_SQL_SCRIPT, [userId]);
+      const [result] = await this.connection.query(Authorizer.USER_CHECK_SQL_SCRIPT, [userId]);
       if (result.count > 0) {
         await this.updateTokenData(userId, token, expire);
       } else {
@@ -101,12 +101,12 @@ export class Authenticator {
   private calculateExpireTime(): string {
     return moment
       .utc()
-      .add(1, 'day')
+      .add(Authorizer.EXPIRE_DAYS, 'day')
       .format(DATETIME_FORMATE);
   }
 
   private async updateTokenData(userId: string, token: string, expire: number) {
-    await this.connection.query(Authenticator.UPDATE_TOKEN_SQL_SCRIPT, [
+    await this.connection.query(Authorizer.UPDATE_TOKEN_SQL_SCRIPT, [
       token,
       this.calculateTokenExpireTime(expire),
       this.calculateExpireTime(),
@@ -116,7 +116,7 @@ export class Authenticator {
 
   private async createNewUser(token: string, payload: TokenPayload) {
     const { email, picture, name, sub, exp } = payload;
-    await this.connection.query(Authenticator.CREATE_USER_SQL_SCRIPT, [
+    await this.connection.query(Authorizer.CREATE_USER_SQL_SCRIPT, [
       sub,
       name,
       picture,

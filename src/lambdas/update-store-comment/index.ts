@@ -97,7 +97,7 @@ export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayPr
     const selectCommentResults = (await connection.query(SQL_SCRIPT_CHECK_COMMENT_EXIST, [
       commentId,
       storeId,
-    ])) as [Schema.Comment?];
+    ])) as [Schema.Comment | null];
     if (selectCommentResults.length <= 0) {
       return ResponseBuilder.createBadRequest('The comment does not exist.');
     }

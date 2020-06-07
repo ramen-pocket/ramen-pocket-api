@@ -1,5 +1,5 @@
 import { CustomAuthorizerEvent, CustomAuthorizerResult } from 'aws-lambda';
-import { Authenticator } from './authenticator';
+import { Authorizer } from './authenticator';
 import { AwsArnComposition } from './aws-arn-composition';
 import { ApiGatewayArnComposition } from './api-gateway-arn-composition';
 import { AuthorityPolicyBuilder } from './authority-policy-builder';
@@ -14,7 +14,7 @@ export default async (event: CustomAuthorizerEvent): Promise<CustomAuthorizerRes
 
   // ===== Verify the token =====
   let principalId: string;
-  const authenticator = new Authenticator(GOOGLE_CLIENT_ID);
+  const authenticator = new Authorizer(GOOGLE_CLIENT_ID);
 
   try {
     await authenticator.connectToDatabase();
