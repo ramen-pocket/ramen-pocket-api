@@ -399,3 +399,17 @@ Resources:
             Method: DELETE
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  CreateStore:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/create-store
+      Role: !GetAtt IAMRoleForLambda.Arn
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /stores
+            Method: POST
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
