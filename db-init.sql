@@ -93,9 +93,10 @@ CREATE TABLE IF NOT EXISTS commentedCourses (
 );
 
 CREATE TABLE IF NOT EXISTS tags (
-  id INT NOT NULL,
+  id INT NOT NULL AUTO_INCREMENT,
   name VARCHAR(255),
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  CONSTRAINT name_unique UNIQUE (name)
 );
 
 CREATE TABLE IF NOT EXISTS storeTags (

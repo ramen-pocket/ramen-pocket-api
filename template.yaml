@@ -413,3 +413,17 @@ Resources:
             Method: POST
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  ReadTags:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/read-tags
+      Role: !GetAtt IAMRoleForLambda.Arn
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /tags
+            Method: GET
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
