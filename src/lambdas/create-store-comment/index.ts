@@ -1,5 +1,6 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
 import moment from 'moment';
+import { UpsertResult } from 'mariadb';
 import { DatabaseConnection } from '../../utils/database-connection';
 import { ExtendedAPIGatewayProxyEvent } from '../../interfaces/extended-api-gateway-proxy-event';
 import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
@@ -74,7 +75,7 @@ async function createCommentToDatabase(
   userId: string,
   storeId: number,
 ) {
-  const result = await connection.query(SQL_SCRIPT_INSERT_COMMENT, [
+  const result = await connection.query<UpsertResult>(SQL_SCRIPT_INSERT_COMMENT, [
     userId,
     storeId,
     commentDto.content,
@@ -83,7 +84,7 @@ async function createCommentToDatabase(
     moment.utc().format(DATETIME_FORMATE),
   ]);
 
-  const commentId: string = result.insertId;
+  const commentId: number = result.insertId;
   if (commentDto.courses.length > 0) {
     await connection.batch(
       SQL_SCRIPT_INSERT_COMMENTED_COURSES,

@@ -1,3 +1,4 @@
+import { UpsertResult } from 'mariadb';
 import { DatabaseConnection } from '../../utils/database-connection';
 import { StoreDto, BusinessHour, Course } from './validation';
 
@@ -26,8 +27,8 @@ export class StoreCreator {
     return counter.count === tagIds.length;
   }
 
-  private async createStore(storeDto: StoreDto): Promise<string> {
-    const result = await this.connection.query(StoreCreator.SQL_SCRIPT_CREATE_STORE, [
+  private async createStore(storeDto: StoreDto): Promise<number> {
+    const result = await this.connection.query<UpsertResult>(StoreCreator.SQL_SCRIPT_CREATE_STORE, [
       storeDto.name,
       storeDto.location.address,
       storeDto.location.lat,
@@ -38,7 +39,7 @@ export class StoreCreator {
     return result.insertId;
   }
 
-  private async createImages(storeId: string, imageUrls: string[]) {
+  private async createImages(storeId: number, imageUrls: string[]) {
     if (imageUrls.length <= 0) return;
     await this.connection.batch(
       StoreCreator.SQL_SCRIPT_CREATE_IMAGES,
@@ -46,7 +47,7 @@ export class StoreCreator {
     );
   }
 
-  private async createBusinessHours(storeId: string, businessHours: BusinessHour[]) {
+  private async createBusinessHours(storeId: number, businessHours: BusinessHour[]) {
     if (businessHours.length <= 0) return;
     await this.connection.batch(
       StoreCreator.SQL_SCRIPT_CREATE_BUSINESS_HOURS,
@@ -54,7 +55,7 @@ export class StoreCreator {
     );
   }
 
-  private async createCourses(storeId: string, courses: Course[]) {
+  private async createCourses(storeId: number, courses: Course[]) {
     if (courses.length <= 0) return;
     await this.connection.batch(
       StoreCreator.SQL_SCRIPT_CREATE_COURSES,
@@ -62,7 +63,7 @@ export class StoreCreator {
     );
   }
 
-  private async createStoreTags(storeId: string, tagIds: string[]) {
+  private async createStoreTags(storeId: number, tagIds: string[]) {
     if (tagIds.length <= 0) return;
     await this.connection.batch(
       StoreCreator.SQL_SCRIPT_CREATE_STORE_TAGS,

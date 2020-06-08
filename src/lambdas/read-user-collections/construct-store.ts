@@ -21,9 +21,9 @@ export async function constructStore(
   conn: DatabaseConnection,
 ): Promise<Store> {
   const [images, businessHours, courses] = await Promise.all([
-    conn.query(SQL_SCRIPT_IMAGES, [rawStore.id]),
-    conn.query(SQL_SCRIPT_BUSINESS_HOURS, [rawStore.id]),
-    conn.query(SQL_SCRIPT_COURSES, [rawStore.id]),
+    conn.query<Schema.Image[]>(SQL_SCRIPT_IMAGES, [rawStore.id]),
+    conn.query<Schema.BusinessHour[]>(SQL_SCRIPT_BUSINESS_HOURS, [rawStore.id]),
+    conn.query<Schema.Course[]>(SQL_SCRIPT_COURSES, [rawStore.id]),
   ]);
 
   return {
@@ -38,13 +38,13 @@ export async function constructStore(
     },
     rate: rawStore.rate,
     featuredImage: rawStore.featuredImage,
-    images: images.map((image: Schema.Image) => image.url),
-    businessHours: businessHours.map((item: Schema.BusinessHour) => ({
-      off: item.off,
+    images: images.map((image) => image.url),
+    businessHours: businessHours.map((item) => ({
+      off: Boolean(item.off),
       begin: item.begin,
       end: item.end,
     })),
-    courses: courses.map((course: Schema.Course) => ({
+    courses: courses.map((course) => ({
       name: course.name,
       price: course.price,
       isRamen: Boolean(course.isRamen),

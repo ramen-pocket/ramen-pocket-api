@@ -26,14 +26,15 @@ export class StoreCommentGroupConstructor {
 
   private async buildStore(callerUserId: string): Promise<Store> {
     const CLASS = StoreCommentGroupConstructor;
-    const [rawStores, rawImages, rawBusinessHours, rawCourses, counter] = (await Promise.all([
-      this.connection.query(CLASS.SQL_SCRIPT_STORE, [this.storeId]),
-      this.connection.query(CLASS.SQL_SCRIPT_IMAGES, [this.storeId]),
-      this.connection.query(CLASS.SQL_SCRIPT_BUSINESS_HOURS, [this.storeId]),
-      this.connection.query(CLASS.SQL_SCRIPT_COURSES, [this.storeId]),
-      this.connection.query(CLASS.SQL_SCRIPT_CHECK_COLLECTION, [callerUserId]),
-    ])) as [Schema.Store[], Schema.Image[], Schema.BusinessHour[], Schema.Course[], Counter];
+    const [rawStores, rawImages, rawBusinessHours, rawCourses, countResult] = await Promise.all([
+      this.connection.query<Schema.Store[]>(CLASS.SQL_SCRIPT_STORE, [this.storeId]),
+      this.connection.query<Schema.Image[]>(CLASS.SQL_SCRIPT_IMAGES, [this.storeId]),
+      this.connection.query<Schema.BusinessHour[]>(CLASS.SQL_SCRIPT_BUSINESS_HOURS, [this.storeId]),
+      this.connection.query<Schema.Course[]>(CLASS.SQL_SCRIPT_COURSES, [this.storeId]),
+      this.connection.query<[Counter]>(CLASS.SQL_SCRIPT_CHECK_COLLECTION, [callerUserId]),
+    ]);
 
+    const [counter] = countResult;
     const isStoreCollectedByCaller = counter.count > 0;
     const [rawStore] = rawStores;
     return {
