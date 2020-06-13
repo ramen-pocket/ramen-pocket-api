@@ -33,3 +33,13 @@ export class ResourceNotFound extends ServiceError {
     this.errReason = reason;
   }
 }
+
+export class ResourceCreationConflict extends ServiceError {
+  protected readonly errCode = 'RESOURCE_CREATION_CONFLICT';
+  protected readonly errReason: string;
+
+  constructor(reason?: string) {
+    super();
+    this.errReason = reason || 'A conflict from the creation of the resource occurred.';
+  }
+}
