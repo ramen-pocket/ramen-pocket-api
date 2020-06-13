@@ -8,4 +8,5 @@ export interface CommentRepository {
   readManyGroupedByUserByStoreId(storeId: number): Promise<UserProfileCommentGroupEntity[]>;
   createOne(newComment: NewCommentEntity): Promise<number>;
   updateOne(updatedComment: UpdatedCommentEntity): Promise<void>;
+  deleteOne(id: number, userId: string, storeId: number): Promise<void>;
 }

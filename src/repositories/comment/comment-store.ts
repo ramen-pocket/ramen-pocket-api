@@ -21,10 +21,11 @@ const SQL_INSERT_COMMENT = `
   INSERT INTO comments (userId, storeId, content, isDeleted, rate, publishedAt)
   VALUES (?, ?, ?, false, ?, ?)
 `;
-const SQL_UPDATE_COMMENT_BY_ID = `UPDATE comments SET content = ?, rate = ? WHERE id = ?`;
+const SQL_UPDATE_COMMENT_BY_ID = `UPDATE comments SET content = ?, rate = ? WHERE id = ? AND isDeleted = false`;
 const SQL_INSERT_COMMENTED_COURSES = `INSERT INTO commentedCourses VALUES (?, ?)`;
 const SQL_DELETE_COMMENTED_COURSES_BY_COMMENT_ID = `DELETE FROM commentedCourses WHERE commentId = ?`;
-const SQL_CHECK_ID_EXISTENCE = `SELECT COUNT(*) AS count FROM comments WHERE id = ?`;
+const SQL_CHECK_ID_EXISTENCE = `SELECT COUNT(*) AS count FROM comments WHERE id = ? AND isDeleted = false`;
+const SQL_DELETE_COMMENT_BY_ID = `UPDATE comments SET isDeleted = true WHERE id = ?`;
 
 export class CommentStore implements CommentRepository {
   public constructor(
@@ -143,6 +144,15 @@ export class CommentStore implements CommentRepository {
     await this.queryAgent.query(SQL_DELETE_COMMENTED_COURSES_BY_COMMENT_ID, [commentId]);
   }
 
+  private async checkIdExistence(id: number): Promise<boolean> {
+    const [counter] = await this.queryAgent.query<SelectQueryResult<Counter>>(
+      SQL_CHECK_ID_EXISTENCE,
+      [id],
+    );
+
+    return counter.count > 0;
+  }
+
   async createOne(newComment: NewCommentEntity): Promise<number> {
     if (!(await this.userRepository.checkIdExistence(newComment.userId))) {
       throw new ResourceNotFound('The user does not exist.');
@@ -171,12 +181,7 @@ export class CommentStore implements CommentRepository {
   }
 
   async updateOne(updatedComment: UpdatedCommentEntity): Promise<void> {
-    const [counter] = await this.queryAgent.query<SelectQueryResult<Counter>>(
-      SQL_CHECK_ID_EXISTENCE,
-      [updatedComment.id],
-    );
-
-    if (counter.count < 1) {
+    if (!(await this.checkIdExistence(updatedComment.id))) {
       throw new ResourceNotFound('The comment does not exist.');
     }
 
@@ -190,5 +195,21 @@ export class CommentStore implements CommentRepository {
       await this.deleteManyCommentedCoursesByCommentId(updatedComment.id);
       await this.createManyCommentedCourses(updatedComment.id, updatedComment.courses);
     });
+  }
+
+  async deleteOne(id: number, userId: string, storeId: number): Promise<void> {
+    if (!(await this.userRepository.checkIdExistence(userId))) {
+      throw new ResourceNotFound('The user does not exist.');
+    }
+
+    if (!(await this.storeRepository.checkIdExistence(storeId))) {
+      throw new ResourceNotFound('The store does not exist.');
+    }
+
+    if (!(await this.checkIdExistence(id))) {
+      throw new ResourceNotFound('The comment does not exist.');
+    }
+
+    await this.queryAgent.query<OkPacket>(SQL_DELETE_COMMENT_BY_ID, [id]);
   }
 }
