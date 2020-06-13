@@ -23,3 +23,13 @@ export class InvalidSignInToken extends ServiceError {
   protected readonly errCode = 'INVALID_SIGN_IN_TOKEN';
   protected readonly errReason = 'The sign in token is invalid.';
 }
+
+export class ResourceNotFound extends ServiceError {
+  protected readonly errCode = 'RESOURCE_NOT_FOUND';
+  protected readonly errReason: string;
+
+  constructor(reason: string) {
+    super();
+    this.errReason = reason;
+  }
+}
