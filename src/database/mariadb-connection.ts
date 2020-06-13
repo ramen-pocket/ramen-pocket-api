@@ -1,8 +1,9 @@
 import { Connection, createConnection, UpsertResult } from 'mariadb';
+import { ManageableConnection } from '../interfaces/manageable-connection';
 import { DatabaseConnectionOptions } from './database-connection-options';
 import { TransactionTask } from './transaction-task';
 
-export class MariadbConnection {
+export class MariadbConnection implements ManageableConnection {
   private static readonly ENV_KEY_DB_HOST = 'DB_HOST';
   private static readonly ENV_KEY_DB_USERNAME = 'DB_USERNAME';
   private static readonly ENV_KEY_DB_PASSWORD = 'DB_PASSWORD';
@@ -39,7 +40,7 @@ export class MariadbConnection {
   /**
    * Check whether the connection is alive.
    */
-  public get isConnected(): boolean {
+  public async isConnected(): Promise<boolean> {
     return !!this.connection && this.connection.isValid();
   }
 
