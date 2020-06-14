@@ -5,11 +5,12 @@ import { OkPacket } from '../../database/ok-packet';
 import { DateProvider } from '../../providers/date-provider/date-provider';
 import { UserEntity } from '../../entities/user-entity';
 import { ProfileEntity } from '../../entities/profile-entity';
+import { TokenInformationEntity } from '../../entities/token-information-entity';
 import { UserNotFound } from '../../errors/service-error';
 import { UserRepository } from './user-repository';
 import { UserSchema } from './user-schema';
 
-const SQL_SELECT_EXIPRE = `SELECT expire FROM users WHERE token = ?`;
+const SQL_SELECT_TOKEN_INFO = `SELECT id, tokenExpire, expire FROM users WHERE token = ?`;
 const SQL_INSERT_USER = `INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 const SQL_SELECT_PROFILE = `SELECT name, avatar, points FROM users WHERE id = ?`;
 const SQL_UPDATE_USER_TOKEN = `UPDATE users SET token = ?, tokenExpire = ?, expire = ? WHERE id = ?`;
@@ -21,17 +22,22 @@ export class UserStore implements UserRepository {
     private readonly dateProvider: DateProvider,
   ) {}
 
-  async readLocalExpireByToken(token: string): Promise<Date> {
-    const results = await this.queryAgent.query<SelectQueryResult<UserEntity>>(SQL_SELECT_EXIPRE, [
-      token,
-    ]);
+  async readLocalExpireByToken(token: string): Promise<TokenInformationEntity> {
+    const results = await this.queryAgent.query<SelectQueryResult<UserEntity>>(
+      SQL_SELECT_TOKEN_INFO,
+      [token],
+    );
 
     if (results.length < 1) {
       throw new UserNotFound();
     }
 
     const [user] = results;
-    return user.expire;
+    return {
+      userId: user.id,
+      tokenExpire: user.tokenExpire,
+      expire: user.expire,
+    };
   }
 
   async createUser(user: UserEntity): Promise<void> {

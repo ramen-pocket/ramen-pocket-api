@@ -14,11 +14,11 @@ export class UserService implements UserUsecase {
     private readonly dateProvider: DateProvider,
   ) {}
 
-  async verifyIdentity(token: string): Promise<void> {
+  async verifyIdentity(token: string): Promise<string> {
     try {
-      const expire = await this.userRepository.readLocalExpireByToken(token);
-      if (this.dateProvider.getUtc().valueOf() < expire.valueOf()) {
-        return;
+      const tokenInfo = await this.userRepository.readLocalExpireByToken(token);
+      if (this.dateProvider.getUtc().valueOf() < tokenInfo.expire.valueOf()) {
+        return tokenInfo.userId;
       }
     } catch (err) {
       if (!(err instanceof UserNotFound)) {
@@ -42,6 +42,7 @@ export class UserService implements UserUsecase {
     } else {
       await this.userRepository.updateTokenById(info.userId, token, info.expire, expire);
     }
+    return info.userId;
   }
 
   async checkIdExistence(id: string): Promise<boolean> {
