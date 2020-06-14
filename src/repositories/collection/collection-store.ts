@@ -1,6 +1,6 @@
 import { QueryAgent } from '../../database/query-agent';
 import { SelectQueryResult } from '../../database/select-query-result';
-import { CollectiveStoreEntity } from '../../entities/collective-store-entity';
+import { StoreEntity } from '../../entities/store-entity';
 import { ResourceNotFound, ResourceCreationConflict } from '../../errors/service-error';
 import { UserRepository } from '../user/user-repository';
 import { StoreRepository } from '../store/store-repository';
@@ -21,43 +21,18 @@ export class CollectionStore implements CollectionRepository {
     private readonly storeRepository: StoreRepository,
   ) {}
 
-  async readStoresFromUserCollection(
-    callerUserId: string,
-    targetUserId: string,
-  ): Promise<CollectiveStoreEntity[]> {
-    if (targetUserId && !(await this.userRepository.checkIdExistence(targetUserId))) {
+  async readStoresFromUserCollection(userId: string): Promise<StoreEntity[]> {
+    if (!(await this.userRepository.checkIdExistence(userId))) {
       throw new ResourceNotFound('The target user does not exist.');
     }
 
     const collections = await this.queryAgent.query<SelectQueryResult<CollectionSchema>>(
       SQL_SELECT_STORE_IDS_BY_USER_ID,
-      [targetUserId],
+      [userId],
     );
 
     const storeIds = collections.map((collection) => collection.storeId);
-    const stores = await this.storeRepository.readManyByIds(storeIds);
-
-    if (callerUserId !== targetUserId) {
-      const callerCollections = await this.queryAgent.query<SelectQueryResult<CollectionSchema>>(
-        SQL_SELECT_STORE_IDS_BY_USER_ID,
-        [targetUserId],
-      );
-
-      const callerCollectionSet = new Set<number>();
-      callerCollections.forEach((collection) => callerCollectionSet.add(collection.storeId));
-
-      return stores.map((store) => ({
-        ...store,
-        isCollected: callerCollectionSet.has(store.id),
-      }));
-    } else {
-      return stores.map((store) => ({
-        ...store,
-        isCollected: true,
-      }));
-    }
-
-    return;
+    return this.storeRepository.readManyByIds(storeIds);
   }
 
   private async checkRecordExistenceByIds(userId: string, storeId: number): Promise<boolean> {

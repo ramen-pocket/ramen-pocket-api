@@ -1,10 +1,7 @@
-import { CollectiveStoreEntity } from '../../entities/collective-store-entity';
+import { StoreEntity } from '../../entities/store-entity';
 
 export interface CollectionRepository {
-  readStoresFromUserCollection(
-    callerUserId: string,
-    targetUserId: string,
-  ): Promise<CollectiveStoreEntity[]>;
+  readStoresFromUserCollection(userId: string): Promise<StoreEntity[]>;
   createCollection(userId: string, storeId: number): Promise<void>;
   deleteCollection(userId: string, storeId: number): Promise<void>;
 }
