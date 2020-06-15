@@ -1,4 +1,5 @@
 import { StoreEntity } from '../../entities/store-entity';
+import { CollectiveStoreEntity } from '../../entities/collective-store-entity';
 import { StoreLocationDto } from './store-location-dto';
 import { StoreBusinessHourDto } from './store-business-hour-dto';
 import { StoreCourseDto } from './store-course-dto';
@@ -20,7 +21,7 @@ export class StoreDto {
     return {
       id: store.id,
       name: store.name,
-      isCollected: true,
+      isCollected: isCollected,
       location: {
         address: store.location.address,
         lat: store.location.latitude,
@@ -33,5 +34,9 @@ export class StoreDto {
       courses: store.courses,
       tags: store.tags,
     };
+  }
+
+  static transformFromCollectiveStoreEntity(store: CollectiveStoreEntity): StoreDto {
+    return StoreDto.transformFromStoreEntity(store as StoreEntity, store.isCollected);
   }
 }
