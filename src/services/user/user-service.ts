@@ -1,5 +1,5 @@
 import { UserRepository } from '../../repositories/user/user-repository';
-import { UserNotFound } from '../../errors/service-error';
+import { ResourceNotFound } from '../../errors/service-error';
 import { ProfileEntity } from '../../entities/profile-entity';
 import { UserUsecase } from './user-usecase';
 import { ThirdPartySignInProvider } from '../../providers/thrid-party-sign-in-provider/thrid-party-sign-in-provider';
@@ -21,7 +21,7 @@ export class UserService implements UserUsecase {
         return tokenInfo.userId;
       }
     } catch (err) {
-      if (!(err instanceof UserNotFound)) {
+      if (!(err instanceof ResourceNotFound)) {
         throw err;
       }
     }

@@ -9,11 +9,6 @@ export abstract class ServiceError extends Error {
   }
 }
 
-export class UserNotFound extends ServiceError {
-  protected readonly errCode = 'USER_NOT_FOUND';
-  protected readonly errReason = 'The user does not exist.';
-}
-
 export class UserTokenExpired extends ServiceError {
   protected readonly errCode = 'USER_TOKEN_EXPIRED';
   protected readonly errReason = 'The token has exipred.';

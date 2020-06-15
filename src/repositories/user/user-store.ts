@@ -6,7 +6,7 @@ import { DateProvider } from '../../providers/date-provider/date-provider';
 import { UserEntity } from '../../entities/user-entity';
 import { ProfileEntity } from '../../entities/profile-entity';
 import { TokenInformationEntity } from '../../entities/token-information-entity';
-import { UserNotFound } from '../../errors/service-error';
+import { ResourceNotFound } from '../../errors/service-error';
 import { UserRepository } from './user-repository';
 import { UserSchema } from './user-schema';
 
@@ -29,7 +29,7 @@ export class UserStore implements UserRepository {
     );
 
     if (results.length < 1) {
-      throw new UserNotFound();
+      throw new ResourceNotFound('The user with the token does not exist');
     }
 
     const [user] = results;
@@ -67,7 +67,7 @@ export class UserStore implements UserRepository {
     ]);
 
     if (result.affectedRows < 1) {
-      throw new UserNotFound();
+      throw new ResourceNotFound('The user does not exist');
     }
   }
 
@@ -83,7 +83,7 @@ export class UserStore implements UserRepository {
       id,
     ]);
     if (results.length < 1) {
-      throw new UserNotFound();
+      throw new ResourceNotFound('The user does not exist');
     }
 
     const [user] = results;
