@@ -1,58 +1,24 @@
-import { APIGatewayProxyResult } from 'aws-lambda';
-import { ExtendedAPIGatewayProxyEvent } from '../../interfaces/extended-api-gateway-proxy-event';
-import { DatabaseConnection } from '../../utils/database-connection';
-import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
+import { MariadbConnection } from '../../database/mariadb-connection';
+import { MariadbQueryAgent } from '../../database/mariadb-query-agent';
+import { MomentProvider } from '../../providers/date-provider/moment-provider';
+import { UserStore } from '../../repositories/user/user-store';
+import { StoreStore } from '../../repositories/store/store-store';
+import { CollectionStore } from '../../repositories/collection/collection-store';
+import { CollectionService } from '../../services/collection/collection-service';
+import { DeleteUserCollectionHandler } from '../../controllers/user/delete-user-collection-handler';
+import { Guarantee } from '../../controllers/utils/guarantee';
+import { handleError } from '../../controllers/sentinel';
 
-type TransformationResult<T> = [boolean, T];
+const connection = new MariadbConnection();
+const queryAgent = new MariadbQueryAgent(connection);
+const momentProvider = new MomentProvider();
+const userStore = new UserStore(queryAgent, momentProvider);
+const storeStore = new StoreStore(queryAgent);
+const collectionStore = new CollectionStore(queryAgent, userStore, storeStore);
+const collectionService = new CollectionService(collectionStore);
+const deleteUserCollectionHandler = new DeleteUserCollectionHandler(collectionService);
+const guarantee = new Guarantee(deleteUserCollectionHandler);
+guarantee.rescue(handleError);
+guarantee.ensure(async () => await connection.disconnect());
 
-interface Counter {
-  count: number;
-}
-
-const SQL_SCRIPT_CHECK_COLLECTION_EXIST =
-  'SELECT COUNT(*) AS count FROM collections WHERE userId = ? AND storeId = ?';
-
-const SQL_SCRIPT_DELETE_COLLECTION = 'DELETE FROM collections WHERE userId = ? AND storeId = ?';
-
-function transfromToPositiveInteger(value: string): TransformationResult<number> {
-  const result = Number(value);
-  return [Number.isInteger(result) && result >= 0, result];
-}
-
-export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { authorizer } = event.requestContext;
-  const { userId } = authorizer;
-  const { storeId: rawStoreId } = event.pathParameters;
-  let success: boolean, storeId: number;
-
-  [success, storeId] = transfromToPositiveInteger(rawStoreId);
-  if (!success) {
-    return ResponseBuilder.createBadRequest(
-      'The parameter storeId must be a positive integer or zero.',
-    );
-  }
-
-  const connection = new DatabaseConnection();
-  try {
-    await connection.connect();
-
-    const [counter] = (await connection.query(SQL_SCRIPT_CHECK_COLLECTION_EXIST, [
-      userId,
-      storeId,
-    ])) as [Counter];
-    if (counter.count < 1) {
-      return ResponseBuilder.createNotFound('The collection does not exist.');
-    }
-
-    await connection.query(SQL_SCRIPT_DELETE_COLLECTION, [userId, storeId]);
-
-    return ResponseBuilder.setup()
-      .setStatusCode(HttpCode.NoContent)
-      .build();
-  } catch (err) {
-    console.error(err);
-    throw err;
-  } finally {
-    await connection.disconnect();
-  }
-};
+export default guarantee.handle;

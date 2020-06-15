@@ -1,23 +1,18 @@
-import { APIGatewayProxyResult } from 'aws-lambda';
-import { ExtendedAPIGatewayProxyEvent } from '../../interfaces/extended-api-gateway-proxy-event';
-import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
-import { DatabaseConnection } from '../../utils/database-connection';
+import { MariadbConnection } from '../../database/mariadb-connection';
+import { MariadbQueryAgent } from '../../database/mariadb-query-agent';
+import { TagStore } from '../../repositories/tag/tag-store';
+import { TagService } from '../../services/tag/tag-service';
+import { GetTagsHandler } from '../../controllers/tag/get-tags-handler';
+import { Guarantee } from '../../controllers/utils/guarantee';
+import { handleError } from '../../controllers/sentinel';
 
-const SQL_SCRIPT_READ_TAGS = `SELECT * FROM tags`;
+const connection = new MariadbConnection();
+const queryAgent = new MariadbQueryAgent(connection);
+const tagStore = new TagStore(queryAgent);
+const tagService = new TagService(tagStore);
+const getTagsHandler = new GetTagsHandler(tagService);
+const guarantee = new Guarantee(getTagsHandler);
+guarantee.rescue(handleError);
+guarantee.ensure(async () => await connection.disconnect());
 
-export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const connection = new DatabaseConnection();
-  try {
-    await connection.connect();
-    const tags = await connection.query(SQL_SCRIPT_READ_TAGS);
-    return ResponseBuilder.setup()
-      .setStatusCode(HttpCode.OK)
-      .setBody(tags)
-      .build();
-  } catch (err) {
-    console.error(err);
-    throw err;
-  } finally {
-    await connection.disconnect();
-  }
-};
+export default guarantee.handle;

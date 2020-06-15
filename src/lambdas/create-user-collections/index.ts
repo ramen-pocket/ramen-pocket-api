@@ -1,61 +1,24 @@
-import { APIGatewayProxyResult } from 'aws-lambda';
-import { DatabaseConnection } from '../../utils/database-connection';
-import { ExtendedAPIGatewayProxyEvent } from '../../interfaces/extended-api-gateway-proxy-event';
-import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
+import { MariadbConnection } from '../../database/mariadb-connection';
+import { MariadbQueryAgent } from '../../database/mariadb-query-agent';
+import { MomentProvider } from '../../providers/date-provider/moment-provider';
+import { UserStore } from '../../repositories/user/user-store';
+import { StoreStore } from '../../repositories/store/store-store';
+import { CollectionStore } from '../../repositories/collection/collection-store';
+import { CollectionService } from '../../services/collection/collection-service';
+import { PostUserCollectionHandler } from '../../controllers/user/post-user-collection-handler';
+import { Guarantee } from '../../controllers/utils/guarantee';
+import { handleError } from '../../controllers/sentinel';
 
-type TransformationResult<T> = [boolean, T];
-interface Counter {
-  count: number;
-}
+const connection = new MariadbConnection();
+const queryAgent = new MariadbQueryAgent(connection);
+const momentProvider = new MomentProvider();
+const userStore = new UserStore(queryAgent, momentProvider);
+const storeStore = new StoreStore(queryAgent);
+const collectionStore = new CollectionStore(queryAgent, userStore, storeStore);
+const collectionService = new CollectionService(collectionStore);
+const postUserCollectionHandler = new PostUserCollectionHandler(collectionService);
+const guarantee = new Guarantee(postUserCollectionHandler);
+guarantee.rescue(handleError);
+guarantee.ensure(async () => await connection.disconnect());
 
-const SQL_SCRIPT_CHECK_STORE_EXIST = 'SELECT COUNT(*) AS count FROM stores WHERE id = ?';
-
-const SQL_SCRIPT_CHECK_COLLECTION_EXIST =
-  'SELECT COUNT(*) AS count FROM collections WHERE userId = ? AND storeId = ?';
-
-const SQL_SCRIPT_ADD_COLLECTION = 'INSERT INTO collections VALUES (?, ?)';
-
-function transfromToPositiveInteger(value: string): TransformationResult<number> {
-  const result = Number(value);
-  return [Number.isInteger(result) && result >= 0, result];
-}
-
-export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { requestContext, pathParameters } = event;
-  const { userId } = requestContext.authorizer;
-  const { storeId: rawStoreId } = pathParameters;
-  let success: boolean, storeId: number;
-
-  [success, storeId] = transfromToPositiveInteger(rawStoreId);
-  if (!success) {
-    return ResponseBuilder.createBadRequest(
-      'The paramter storeId must be a positive integer or zero.',
-    );
-  }
-
-  const connection = new DatabaseConnection();
-  try {
-    await connection.connect();
-
-    let [result] = (await connection.query(SQL_SCRIPT_CHECK_STORE_EXIST, [storeId])) as [Counter];
-    if (result.count <= 0) {
-      return ResponseBuilder.createBadRequest('The store does not exist.');
-    }
-
-    [result] = await connection.query(SQL_SCRIPT_CHECK_COLLECTION_EXIST, [userId, storeId]);
-    if (result.count >= 1) {
-      return ResponseBuilder.createBadRequest('The collection has already existed.');
-    }
-
-    await connection.query(SQL_SCRIPT_ADD_COLLECTION, [userId, storeId]);
-
-    return ResponseBuilder.setup()
-      .setStatusCode(HttpCode.Created)
-      .build();
-  } catch (err) {
-    console.error(err);
-    throw err;
-  } finally {
-    await connection.disconnect();
-  }
-};
+export default guarantee.handle;

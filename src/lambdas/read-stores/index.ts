@@ -1,61 +1,22 @@
-import { APIGatewayProxyResult } from 'aws-lambda';
-import { DatabaseConnection } from '../../utils/database-connection';
-import { ExtendedAPIGatewayProxyEvent } from '../../interfaces/extended-api-gateway-proxy-event';
-import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
-import { StoreLoader } from './store-loader';
+import { MariadbConnection } from '../../database/mariadb-connection';
+import { MariadbQueryAgent } from '../../database/mariadb-query-agent';
+import { StoreStore } from '../../repositories/store/store-store';
+import { StoreService } from '../../services/store/store-service';
+import { CollectiveStoreStore } from '../../repositories/collective-store/collective-store-store';
+import { CollectiveStoreService } from '../../services/collective-store/collective-store-service';
+import { GetStoresHandler } from '../../controllers/store/get-stores-handler';
+import { Guarantee } from '../../controllers/utils/guarantee';
+import { handleError } from '../../controllers/sentinel';
 
-type TransformationResult = [boolean, number];
+const connection = new MariadbConnection();
+const queryAgent = new MariadbQueryAgent(connection);
+const storeStore = new StoreStore(queryAgent);
+const storeService = new StoreService(storeStore);
+const collectiveStoreStore = new CollectiveStoreStore(queryAgent);
+const collectiveStoreService = new CollectiveStoreService(collectiveStoreStore);
+const getStoresHandler = new GetStoresHandler(storeService, collectiveStoreService);
+const guarantee = new Guarantee(getStoresHandler);
+guarantee.rescue(handleError);
+guarantee.ensure(async () => await connection.disconnect());
 
-function transfromToPositiveInteger(value: string): TransformationResult {
-  const result = Number(value);
-  return [Number.isInteger(result) && result >= 0, result];
-}
-
-export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { authorizer } = event.requestContext;
-  const { userId } = authorizer;
-  const queryParameters = event.queryStringParameters || {};
-  const rawLimit = queryParameters.limit || '10';
-  const rawSkip = queryParameters.skip || '0';
-
-  // Validation & Transformation
-  let success: boolean;
-  let limit, skip: number;
-
-  [success, limit] = transfromToPositiveInteger(rawLimit);
-  if (!success) {
-    return ResponseBuilder.createUnauthorized(
-      'The query parameter limit must be an positive integer or zero.',
-    );
-  } else if (limit > 100) {
-    return ResponseBuilder.createUnauthorized(
-      'The value of the query parameter limit must be less than or equal to 100.',
-    );
-  }
-
-  [success, skip] = transfromToPositiveInteger(rawSkip);
-  if (!success) {
-    return ResponseBuilder.createUnauthorized(
-      'The query parameter skip must be an positive integer or zero',
-    );
-  }
-
-  // Query
-  const connection = new DatabaseConnection();
-  try {
-    await connection.connect();
-
-    const storeLoader = new StoreLoader(connection);
-    const stores = await storeLoader.readStores(userId, limit, skip);
-
-    return ResponseBuilder.setup()
-      .setStatusCode(HttpCode.OK)
-      .setBody({ stores })
-      .build();
-  } catch (err) {
-    console.error(err);
-    throw err;
-  } finally {
-    await connection.disconnect();
-  }
-};
+export default guarantee.handle;

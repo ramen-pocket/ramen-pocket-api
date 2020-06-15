@@ -1,33 +1,18 @@
-import { APIGatewayProxyResult } from 'aws-lambda';
-import { ExtendedAPIGatewayProxyEvent } from '../../interfaces/extended-api-gateway-proxy-event';
-import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
-import { DatabaseConnection } from '../../utils/database-connection';
-import { validateBody, StoreDto } from './validation';
-import { StoreCreator } from './store-creator';
+import { MariadbConnection } from '../../database/mariadb-connection';
+import { MariadbQueryAgent } from '../../database/mariadb-query-agent';
+import { StoreStore } from '../../repositories/store/store-store';
+import { StoreService } from '../../services/store/store-service';
+import { PostStoreHandler } from '../../controllers/store/post-store-handler';
+import { Guarantee } from '../../controllers/utils/guarantee';
+import { handleError } from '../../controllers/sentinel';
 
-export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  let success: boolean, storeDto: StoreDto, errorMsg: string;
-  [success, storeDto] = validateBody(event.body);
-  if (!success) {
-    return ResponseBuilder.createBadRequest('Incorrect Body Format.');
-  }
+const connection = new MariadbConnection();
+const queryAgent = new MariadbQueryAgent(connection);
+const storeStore = new StoreStore(queryAgent);
+const storeService = new StoreService(storeStore);
+const postStoreHandler = new PostStoreHandler(storeService);
+const guarantee = new Guarantee(postStoreHandler);
+guarantee.rescue(handleError);
+guarantee.ensure(async () => await connection.disconnect());
 
-  const connection = new DatabaseConnection();
-  try {
-    await connection.connect();
-    const storeCreator = new StoreCreator(connection);
-    [success, errorMsg] = await storeCreator.create(storeDto);
-    if (!success) {
-      return ResponseBuilder.createNotFound(errorMsg);
-    }
-
-    return ResponseBuilder.setup()
-      .setStatusCode(HttpCode.Created)
-      .build();
-  } catch (err) {
-    console.error(err);
-    throw err;
-  } finally {
-    await connection.disconnect();
-  }
-};
+export default guarantee.handle;
