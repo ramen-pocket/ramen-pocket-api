@@ -38,3 +38,8 @@ export class ValueFallBehindMinimumError extends ValidationError {
     this.errReason = reason || 'A value falls behind the minimum value.';
   }
 }
+
+export class InvalidBodyFormatError extends ValidationError {
+  protected readonly errCode = 'INVALID_BODY_FORMAT';
+  protected readonly errReason = 'The format of the body is invalid';
+}

@@ -15,7 +15,6 @@ export class StoreEntity {
 export class NewStoreEntity {
   name: string;
   location: StoreLocationEntity;
-  rate: number;
   featuredImage: string;
   images: string[];
   businessHours: StoreBusinessHourEntity[];
