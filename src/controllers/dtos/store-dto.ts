@@ -1,3 +1,4 @@
+import { StoreEntity } from '../../entities/store-entity';
 import { StoreLocationDto } from './store-location-dto';
 import { StoreBusinessHourDto } from './store-business-hour-dto';
 import { StoreCourseDto } from './store-course-dto';
@@ -14,4 +15,23 @@ export class StoreDto {
   businessHours: StoreBusinessHourDto[];
   courses: StoreCourseDto[];
   tags: TagDto[];
+
+  static transformFromStoreEntity(store: StoreEntity, isCollected: boolean = true): StoreDto {
+    return {
+      id: store.id,
+      name: store.name,
+      isCollected: true,
+      location: {
+        address: store.location.address,
+        lat: store.location.latitude,
+        lng: store.location.longtitude,
+      },
+      rate: store.rate,
+      featuredImage: store.featuredImage,
+      images: store.images,
+      businessHours: store.businessHours,
+      courses: store.courses,
+      tags: store.tags,
+    };
+  }
 }
