@@ -46,7 +46,7 @@ const SQL_SELECT_STORE_PAGINATION = `
 const SQL_CHECK_ALL_TAGS_EXISTENCE = `SELECT COUNT(*) AS count FROM tags WHERE id IN ?`;
 const SQL_INSERT_STORE = `
   INSERT INTO stores (name, isDeleted, address, latitude, longtitude, rate, featuredImage)
-  VALUES (?, false, ?, ?, ?, ?, ?)
+  VALUES (?, false, ?, ?, ?, 2.5, ?)
 `;
 const SQL_INSERT_STORE_IMAGES = `INSERT INTO images VALUES (?, ?)`;
 const SQL_INSERT_STORE_BUSINESS_HOURS = `INSERT INTO businessHours VALUES (?, ?, ?, ?, ?)`;
@@ -189,7 +189,6 @@ export class StoreStore implements StoreRepository {
       newStore.location.address,
       newStore.location.latitude,
       newStore.location.longtitude,
-      newStore.rate,
       newStore.featuredImage,
     ]);
 
