@@ -75,7 +75,7 @@ export class UserStore implements UserRepository {
     const [result] = await this.queryAgent.query<SelectQueryResult<Counter>>(SQL_CHECK_ID_EXIST, [
       id,
     ]);
-    return result.count < 1;
+    return result.count >= 1;
   }
 
   async readProfileById(id: string): Promise<ProfileEntity> {
