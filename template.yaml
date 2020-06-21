@@ -186,7 +186,6 @@ Resources:
       AllocatedStorage: "20"
       AvailabilityZone: us-east-1a
       BackupRetentionPeriod: 0
-      DBName: ramen_pocket
       DeleteAutomatedBackups: true
       DeletionProtection: false
       EnablePerformanceInsights: false
