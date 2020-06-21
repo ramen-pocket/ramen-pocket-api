@@ -14,7 +14,7 @@ export class CollectiveStoreService implements CollectiveStoreUsecase {
       userId,
     );
     const collectedStoreIdSet = new Set<number>();
-    collectedStoreIds.forEach(collectedStoreIdSet.add);
+    collectedStoreIds.forEach((id) => collectedStoreIdSet.add(id));
 
     return stores.map((store) => ({
       ...store,
