@@ -196,6 +196,7 @@ export class StoreStore implements StoreRepository {
   }
 
   private async createStoreImages(id: number, urls: string[]) {
+    if (urls.length < 1) return;
     await this.queryAgent.batch(
       SQL_INSERT_STORE_IMAGES,
       urls.map((url) => [url, id]),
@@ -216,6 +217,7 @@ export class StoreStore implements StoreRepository {
   }
 
   private async createStoreCourses(id: number, courses: StoreCourseEntity[]) {
+    if (courses.length < 1) return;
     await this.queryAgent.batch(
       SQL_INSERT_STORE_COURSES,
       courses.map((course) => [course.name, id, course.price, course.isRamen]),
@@ -223,6 +225,7 @@ export class StoreStore implements StoreRepository {
   }
 
   private async createStoreTags(id: number, tagIds: number[]) {
+    if (tagIds.length < 1) return;
     await this.queryAgent.batch(
       SQL_INSERT_STORE_TAGS,
       tagIds.map((tagId) => [id, tagId]),
@@ -230,13 +233,15 @@ export class StoreStore implements StoreRepository {
   }
 
   async createOne(newStore: NewStoreEntity): Promise<number> {
-    const [counter] = await this.queryAgent.query<SelectQueryResult<Counter>>(
-      SQL_CHECK_ALL_TAGS_EXISTENCE,
-      [newStore.tagIds],
-    );
+    if (newStore.tagIds.length >= 1) {
+      const [counter] = await this.queryAgent.query<SelectQueryResult<Counter>>(
+        SQL_CHECK_ALL_TAGS_EXISTENCE,
+        [newStore.tagIds],
+      );
 
-    if (counter.count !== newStore.tagIds.length) {
-      throw new ResourceNotFound('One or many tag ids do not exist.');
+      if (counter.count !== newStore.tagIds.length) {
+        throw new ResourceNotFound('One or many tag ids do not exist.');
+      }
     }
 
     let newStoreId: number;
