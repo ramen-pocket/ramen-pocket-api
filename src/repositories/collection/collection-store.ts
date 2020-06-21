@@ -52,7 +52,7 @@ export class CollectionStore implements CollectionRepository {
       throw new ResourceNotFound('The store does not exist.');
     }
 
-    if (!(await this.checkRecordExistenceByIds(userId, storeId))) {
+    if (await this.checkRecordExistenceByIds(userId, storeId)) {
       throw new ResourceCreationConflict('The collection has already existed.');
     }
 

@@ -43,7 +43,10 @@ export class GetStoresHandler implements RequestHandler {
 
   public async handle(event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
     const { userId } = event.requestContext.authorizer;
-    const { limit: rawLimit, skip: rawSkip } = event.queryStringParameters;
+    const queryParameters = event.queryStringParameters || {};
+    const rawLimit = queryParameters.limit;
+    const rawSkip = queryParameters.skip;
+
     const limit = new IntegerValidator(QUERY_LIMIT_VALIDATOR_CONFIG).validate(
       rawLimit || DEFAULT_QUERY_LIMIT_VALUE,
     );

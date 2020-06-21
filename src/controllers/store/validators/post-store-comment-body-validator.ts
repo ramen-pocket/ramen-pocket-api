@@ -1,5 +1,4 @@
 import { Validator } from '../../validators/validator';
-import { NewCommentEntity } from '../../../entities/new-comment-entity';
 import { InvalidBodyFormatError } from '../../../errors/validation-error';
 import { PostStoreCommentDto } from '../../dtos/post-store-comment-dto';
 
@@ -13,12 +12,12 @@ export class PostStoreCommentBodyValidator implements Validator<string, PostStor
     }
 
     if (typeof obj !== 'object') throw new InvalidBodyFormatError();
-    if (!Number.isInteger(obj.storeId)) throw new InvalidBodyFormatError();
     if (typeof obj.content !== 'string') throw new InvalidBodyFormatError();
     if (typeof obj.rate !== 'number') throw new InvalidBodyFormatError();
     if (!Number.isInteger(obj.rate)) throw new InvalidBodyFormatError();
     if (typeof obj.courses !== 'object') throw new InvalidBodyFormatError();
-    if (obj.courses !== Array) throw new InvalidBodyFormatError();
+    if (obj.courses.constructor !== Array) throw new InvalidBodyFormatError();
+
     const courseSet = new Set<string>();
     obj.courses.forEach((item: any) => {
       if (typeof item !== 'string') throw new InvalidBodyFormatError();
@@ -26,6 +25,6 @@ export class PostStoreCommentBodyValidator implements Validator<string, PostStor
       courseSet.add(item);
     });
 
-    return obj as NewCommentEntity;
+    return obj;
   }
 }

@@ -12,12 +12,12 @@ export class PutStoreCommentBodyValidator implements Validator<string, PutStoreC
     }
 
     if (typeof obj !== 'object') throw new InvalidBodyFormatError();
-    if (!Number.isInteger(obj.storeId)) throw new InvalidBodyFormatError();
     if (typeof obj.content !== 'string') throw new InvalidBodyFormatError();
     if (typeof obj.rate !== 'number') throw new InvalidBodyFormatError();
     if (!Number.isInteger(obj.rate)) throw new InvalidBodyFormatError();
     if (typeof obj.courses !== 'object') throw new InvalidBodyFormatError();
-    if (obj.courses !== Array) throw new InvalidBodyFormatError();
+    if (obj.courses.constructor !== Array) throw new InvalidBodyFormatError();
+
     const courseSet = new Set<string>();
     obj.courses.forEach((item: any) => {
       if (typeof item !== 'string') throw new InvalidBodyFormatError();

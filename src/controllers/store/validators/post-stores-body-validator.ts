@@ -6,9 +6,9 @@ export class PostStoresBodyValidator implements Validator<string, NewStoreEntity
   private validateLocation(location: any) {
     if (typeof location !== 'object') throw new InvalidBodyFormatError();
     if (typeof location.address !== 'string') throw new InvalidBodyFormatError();
-    if (typeof location.lat !== 'number' && !Number.isInteger(location.lat))
+    if (typeof location.lat !== 'number' || !Number.isFinite(location.lat))
       throw new InvalidBodyFormatError();
-    if (typeof location.lng !== 'number' && !Number.isInteger(location.lng))
+    if (typeof location.lng !== 'number' || !Number.isFinite(location.lng))
       throw new InvalidBodyFormatError();
 
     return {
@@ -30,7 +30,9 @@ export class PostStoresBodyValidator implements Validator<string, NewStoreEntity
 
   private validateTagIds(tagIds: any) {
     this.validateArray(tagIds);
-    if (tagIds.some((id: any) => typeof id !== 'number')) throw new InvalidBodyFormatError();
+    if (tagIds.some((id: any) => typeof id !== 'number' || !Number.isInteger(id))) {
+      throw new InvalidBodyFormatError();
+    }
   }
 
   private validateBusinessHours(businessHours: any) {
@@ -59,19 +61,27 @@ export class PostStoresBodyValidator implements Validator<string, NewStoreEntity
   public validate(value: string): NewStoreEntity {
     let obj: any;
     try {
-      obj = JSON.stringify(value);
+      obj = JSON.parse(value);
     } catch (err) {
       throw new InvalidBodyFormatError();
     }
 
     if (typeof obj.name !== 'string') throw new InvalidBodyFormatError();
     if (typeof obj.featuredImage !== 'string') throw new InvalidBodyFormatError();
-    this.validateLocation(obj.location);
+    const transformedLocation = this.validateLocation(obj.location);
     this.validateImages(obj.images);
     this.validateBusinessHours(obj.businessHours);
     this.validateCourses(obj.courses);
-    this.validateTagIds(obj.tagIds);
+    this.validateTagIds(obj.tags);
 
-    return obj as NewStoreEntity;
+    return {
+      name: obj.name,
+      featuredImage: obj.featuredImage,
+      location: transformedLocation,
+      images: obj.images,
+      businessHours: obj.businessHours,
+      courses: obj.courses,
+      tagIds: obj.tags,
+    };
   }
 }

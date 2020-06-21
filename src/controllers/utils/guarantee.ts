@@ -10,7 +10,9 @@ export class Guarantee implements RequestHandler {
   private assurance?: Action;
   private remedy?: Remedy<APIGatewayProxyResult>;
 
-  public constructor(private readonly entryHandler: RequestHandler) {}
+  public constructor(private readonly entryHandler: RequestHandler) {
+    this.handle = this.handle.bind(this);
+  }
 
   public async handle(event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
     try {
@@ -41,7 +43,9 @@ export class AuthorizationGuarantee implements AuthorizationHandler {
   private assurance?: Action;
   private remedy?: Remedy<CustomAuthorizerResult>;
 
-  public constructor(private readonly entryHandler: AuthorizationHandler) {}
+  public constructor(private readonly entryHandler: AuthorizationHandler) {
+    this.handle = this.handle.bind(this);
+  }
 
   public async handle(event: CustomAuthorizerEvent): Promise<CustomAuthorizerResult> {
     try {

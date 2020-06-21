@@ -13,30 +13,32 @@ export class MariadbQueryAgent implements QueryAgent {
   }
 
   async query<T = any[]>(script: string, parameters?: any[]): Promise<T> {
-    this.checkConnection();
+    await this.checkConnection();
     return this.connection.query<T>(script, parameters);
   }
 
   async batch(script: string, parameters?: any[]): Promise<UpsertResult[]> {
-    this.checkConnection();
+    await this.checkConnection();
     return this.connection.batch(script, parameters);
   }
 
   async beginTransaction(): Promise<void> {
-    this.checkConnection();
-    this.connection.beginTransaction();
+    await this.checkConnection();
+    await this.connection.beginTransaction();
   }
+
   async commit(): Promise<void> {
-    this.checkConnection();
-    this.connection.commit();
+    await this.checkConnection();
+    await this.connection.commit();
   }
+
   async rollback(): Promise<void> {
-    this.checkConnection();
-    this.connection.rollback();
+    await this.checkConnection();
+    await this.connection.rollback();
   }
 
   async runTransactionTask(task: TransactionTask): Promise<void> {
-    this.checkConnection();
-    this.connection.runTransactionTask(task);
+    await this.checkConnection();
+    await this.connection.runTransactionTask(task);
   }
 }
