@@ -1,40 +1,25 @@
-import { APIGatewayProxyResult } from 'aws-lambda';
-import { DatabaseConnection } from '../../utils/database-connection';
-import { ExtendedAPIGatewayProxyEvent } from '../../interfaces/extended-api-gateway-proxy-event';
-import { Profile } from '../../interfaces/profile';
-import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
+import { MariadbConnection } from '../../database/mariadb-connection';
+import { MariadbQueryAgent } from '../../database/mariadb-query-agent';
+import { GoogleSignInProvider } from '../../providers/thrid-party-sign-in-provider/google-sign-in-provider';
+import { MomentProvider } from '../../providers/date-provider/moment-provider';
+import { UserStore } from '../../repositories/user/user-store';
+import { UserService } from '../../services/user/user-service';
+import { GetUserProfileHandler } from '../../controllers/user/get-user-profile-handler';
+import { Guarantee } from '../../controllers/utils/guarantee';
+import { handleError } from '../../controllers/sentinel';
 
-const SQL_SCRIPT = 'SELECT name, avatar, points FROM users WHERE id = ?';
+const { GOOGLE_CLIENT_ID } = process.env;
 
-export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { authorizer } = event.requestContext;
-  const { userId } = authorizer;
+const connection = new MariadbConnection();
+const queryAgent = new MariadbQueryAgent(connection);
+const momentProvider = new MomentProvider();
+const googleSignInProvider = new GoogleSignInProvider(GOOGLE_CLIENT_ID, momentProvider);
+const userStore = new UserStore(queryAgent, momentProvider);
+const userService = new UserService(userStore, googleSignInProvider, momentProvider);
+const getUserProfileHandler = new GetUserProfileHandler(userService);
 
-  const connection = new DatabaseConnection();
-  try {
-    await connection.connect();
+const guarantee = new Guarantee(getUserProfileHandler);
+guarantee.rescue(handleError);
+guarantee.ensure(async () => await connection.disconnect());
 
-    const results = await connection.query(SQL_SCRIPT, [userId]);
-    if (results.length <= 0) {
-      return ResponseBuilder.createNotFound('The user does not exist.');
-    }
-
-    const user = results[0];
-    const profile: Profile = {
-      userId,
-      name: user.name,
-      avatar: user.avatar,
-      points: user.points,
-    };
-
-    return ResponseBuilder.setup()
-      .setStatusCode(HttpCode.OK)
-      .setBody(profile)
-      .build();
-  } catch (err) {
-    console.log(err);
-    throw err;
-  } finally {
-    connection.disconnect();
-  }
-};
+export default guarantee.handle;

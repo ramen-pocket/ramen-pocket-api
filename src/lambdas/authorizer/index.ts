@@ -1,58 +1,22 @@
-import { CustomAuthorizerEvent, CustomAuthorizerResult } from 'aws-lambda';
-import { Authorizer } from './authenticator';
-import { AwsArnComposition } from './aws-arn-composition';
-import { ApiGatewayArnComposition } from './api-gateway-arn-composition';
-import { AuthorityPolicyBuilder } from './authority-policy-builder';
+import { MariadbConnection } from '../../database/mariadb-connection';
+import { MariadbQueryAgent } from '../../database/mariadb-query-agent';
+import { MomentProvider } from '../../providers/date-provider/moment-provider';
+import { GoogleSignInProvider } from '../../providers/thrid-party-sign-in-provider/google-sign-in-provider';
+import { UserStore } from '../../repositories/user/user-store';
+import { UserService } from '../../services/user/user-service';
+import { AuthorizerHandler } from '../../controllers/authorizer/handler';
+import { AuthorizationGuarantee } from '../../controllers/utils/guarantee';
 
 const { GOOGLE_CLIENT_ID } = process.env;
 
-export default async (event: CustomAuthorizerEvent): Promise<CustomAuthorizerResult> => {
-  console.log(`Method ARN: ${event.methodArn}`);
+const connection = new MariadbConnection();
+const queryAgent = new MariadbQueryAgent(connection);
+const momentProvider = new MomentProvider();
+const googleSignInProvider = new GoogleSignInProvider(GOOGLE_CLIENT_ID, momentProvider);
+const userStore = new UserStore(queryAgent, momentProvider);
+const userService = new UserService(userStore, googleSignInProvider, momentProvider);
+const authorizerHandler = new AuthorizerHandler(userService);
+const guarantee = new AuthorizationGuarantee(authorizerHandler);
+guarantee.ensure(async () => await connection.disconnect());
 
-  const { authorizationToken } = event;
-  const token = authorizationToken;
-
-  // ===== Verify the token =====
-  let principalId: string;
-  const authenticator = new Authorizer(GOOGLE_CLIENT_ID);
-
-  try {
-    await authenticator.connectToDatabase();
-
-    if (
-      !(await authenticator.verifyLocally(token)) &&
-      !(await authenticator.verifyByGoogle(token))
-    ) {
-      throw new Error('Unauthorized');
-    } else {
-      principalId = authenticator.getUserId();
-    }
-  } catch (err) {
-    console.log(`Error in index.default:`);
-    console.log(err);
-
-    throw err;
-  } finally {
-    await authenticator.disconnectToDatabase();
-  }
-
-  // ===== Generate policy =====
-  const awsArnComposition = new AwsArnComposition(event.methodArn);
-  const apiGatewayArnComposition = new ApiGatewayArnComposition(awsArnComposition.resourceId);
-  const authorityPolicyBuilder = new AuthorityPolicyBuilder(
-    principalId,
-    awsArnComposition.accountId,
-    {
-      region: awsArnComposition.region,
-      restApiId: apiGatewayArnComposition.apiId,
-      stage: apiGatewayArnComposition.stage,
-    },
-  );
-
-  authorityPolicyBuilder.allowAllMethods();
-
-  const response: CustomAuthorizerResult = authorityPolicyBuilder.build();
-  response.context = { userId: principalId };
-
-  return response;
-};
+export default guarantee.handle;

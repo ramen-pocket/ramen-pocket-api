@@ -61,6 +61,7 @@ Globals:
         DB_PASSWORD: !Ref DBPassword
         DB_DATABASE: ramen_pocket
         GOOGLE_CLIENT_ID: !Ref GoogleClientId
+        TZ: UTC
     Tags:
       Owner: Ramen Pocket Dev Team
 
@@ -222,7 +223,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/read-user-profile
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -236,7 +237,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/read-user-collections
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -250,7 +251,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/create-user-collections
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -264,7 +265,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/delete-user-collection
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -278,7 +279,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/read-user-comments
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -292,7 +293,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/read-specified-user-profile
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -306,7 +307,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/read-specified-user-collections
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -320,7 +321,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/read-specified-user-comments
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -348,7 +349,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/read-stores-comments
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -362,7 +363,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/create-store-comment
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -376,7 +377,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/update-store-comment
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -390,7 +391,7 @@ Resources:
     Properties:
       CodeUri: ./dist/lambdas/delete-store-comment
       Role: !GetAtt IAMRoleForLambda.Arn
-      Layers: [!Ref CommonLayer]
+      Layers: [!Ref CommonLayer, !Ref OAuthLayer]
       Events:
         APIGateway:
           Type: Api
@@ -399,3 +400,27 @@ Resources:
             Method: DELETE
             Auth:
               Authorizer: LambdaTokenAuthorizer
+  CreateStore:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/create-store
+      Role: !GetAtt IAMRoleForLambda.Arn
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /stores
+            Method: POST
+  ReadTags:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/lambdas/read-tags
+      Role: !GetAtt IAMRoleForLambda.Arn
+      Layers: [!Ref CommonLayer]
+      Events:
+        APIGateway:
+          Type: Api
+          Properties:
+            Path: /tags
+            Method: GET

@@ -129,6 +129,9 @@ Two steps to tearing down this application:
 - On the Cloudformation dashboard, delete the stack with the project name you entered.
 - On the S3 dashboard, delete the bucket with the project name you entered.
 
+## Architecture
+![](https://i.imgur.com/zeDUOEg.png)
+
 ## Commands
 
 Transpile TypeScript files in `src` into JavaScript in `dist`:

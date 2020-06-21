@@ -66,4 +66,14 @@ export namespace Schema {
     name?: string;
     commentId?: number;
   }
+
+  export interface Tag {
+    id: number;
+    name: string;
+  }
+
+  export interface StoreTag {
+    storeId: number;
+    tagId: number;
+  }
 }

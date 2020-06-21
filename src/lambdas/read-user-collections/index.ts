@@ -1,53 +1,29 @@
-import { APIGatewayProxyResult } from 'aws-lambda';
-import { DatabaseConnection } from '../../utils/database-connection';
-import { ExtendedAPIGatewayProxyEvent } from '../../interfaces/extended-api-gateway-proxy-event';
-import { Schema } from '../../interfaces/schemas';
-import { Store } from '../../interfaces/store';
-import { constructStore } from './construct-store';
-import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
+import { MariadbConnection } from '../../database/mariadb-connection';
+import { MariadbQueryAgent } from '../../database/mariadb-query-agent';
+import { MomentProvider } from '../../providers/date-provider/moment-provider';
+import { UserStore } from '../../repositories/user/user-store';
+import { StoreStore } from '../../repositories/store/store-store';
+import { CollectionStore } from '../../repositories/collection/collection-store';
+import { CollectionService } from '../../services/collection/collection-service';
+import { CollectiveStoreStore } from '../../repositories/collective-store/collective-store-store';
+import { CollectiveStoreService } from '../../services/collective-store/collective-store-service';
+import { GetUserCollectionsHandler } from '../../controllers/user/get-user-collections-handler';
+import { Guarantee } from '../../controllers/utils/guarantee';
+import { handleError } from '../../controllers/sentinel';
 
-const SQL_SCRIPT_COLLECTION_STORES = `
-SELECT
-  s.id AS id,
-  s.name AS name,
-  s.isDeleted AS isDeleted,
-  s.address AS address,
-  s.latitude AS latitude,
-  s.longtitude AS longtitude,
-  s.rate AS rate,
-  s.\`featuredImage\` AS \`featuredImage\`
-FROM stores AS s
-LEFT JOIN collections AS col
-ON s.id = col.storeId
-LEFT JOIN users AS u
-ON col.userId = u.id
-WHERE u.id = ?
-`;
+const connection = new MariadbConnection();
+const queryAgent = new MariadbQueryAgent(connection);
+const momentProvider = new MomentProvider();
+const userStore = new UserStore(queryAgent, momentProvider);
+const storeStore = new StoreStore(queryAgent);
+const collectionStore = new CollectionStore(queryAgent, userStore, storeStore);
+const collectionService = new CollectionService(collectionStore);
+const collectiveStoreStore = new CollectiveStoreStore(queryAgent);
+const collectiveStoreService = new CollectiveStoreService(collectiveStoreStore);
+const getUserCollectionsHandler = new GetUserCollectionsHandler(collectionService);
 
-export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { authorizer } = event.requestContext;
-  const { userId } = authorizer;
+const guarantee = new Guarantee(getUserCollectionsHandler);
+guarantee.rescue(handleError);
+guarantee.ensure(async () => await connection.disconnect());
 
-  const connection = new DatabaseConnection();
-  try {
-    await connection.connect();
-
-    const rawStores = (await connection.query(SQL_SCRIPT_COLLECTION_STORES, [
-      userId,
-    ])) as Schema.Store[];
-
-    const promises = rawStores.map((rawStore) => constructStore(rawStore, connection));
-
-    const stores = await Promise.all(promises);
-
-    return ResponseBuilder.setup()
-      .setStatusCode(HttpCode.OK)
-      .setBody({ stores })
-      .build();
-  } catch (err) {
-    console.log(err);
-    throw err;
-  } finally {
-    connection.disconnect();
-  }
-};
+export default guarantee.handle;

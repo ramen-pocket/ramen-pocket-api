@@ -1,28 +1,29 @@
-import { APIGatewayProxyResult } from 'aws-lambda';
-import { DatabaseConnection } from '../../utils/database-connection';
-import { ExtendedAPIGatewayProxyEvent } from '../../interfaces/extended-api-gateway-proxy-event';
-import { ResponseBuilder, HttpCode } from '../../utils/response-builder';
-import { ResponseConstructor } from './response-constructor';
+import { MariadbConnection } from '../../database/mariadb-connection';
+import { MariadbQueryAgent } from '../../database/mariadb-query-agent';
+import { MomentProvider } from '../../providers/date-provider/moment-provider';
+import { UserStore } from '../../repositories/user/user-store';
+import { StoreStore } from '../../repositories/store/store-store';
+import { CommentStore } from '../../repositories/comment/comment-store';
+import { CommentService } from '../../services/comment/comment-service';
+import { CollectiveStoreStore } from '../../repositories/collective-store/collective-store-store';
+import { CollectiveStoreService } from '../../services/collective-store/collective-store-service';
+import { GetUserCommentsHandler } from '../../controllers/user/get-user-comments-handler';
+import { Guarantee } from '../../controllers/utils/guarantee';
+import { handleError } from '../../controllers/sentinel';
 
-export default async (event: ExtendedAPIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { authorizer } = event.requestContext;
-  const { userId } = authorizer;
+const connection = new MariadbConnection();
+const queryAgent = new MariadbQueryAgent(connection);
+const momentProvider = new MomentProvider();
+const userStore = new UserStore(queryAgent, momentProvider);
+const storeStore = new StoreStore(queryAgent);
+const commentStore = new CommentStore(queryAgent, userStore, storeStore, momentProvider);
+const commentService = new CommentService(commentStore);
+const collectiveStoreStore = new CollectiveStoreStore(queryAgent);
+const collectiveStoreService = new CollectiveStoreService(collectiveStoreStore);
+const getUserCommentsHandler = new GetUserCommentsHandler(commentService, collectiveStoreService);
 
-  const connection = new DatabaseConnection();
-  try {
-    await connection.connect();
+const guarantee = new Guarantee(getUserCommentsHandler);
+guarantee.rescue(handleError);
+guarantee.ensure(async () => await connection.disconnect());
 
-    const responseConstructor = new ResponseConstructor(connection);
-    const responseBody = await responseConstructor.load(userId);
-
-    return ResponseBuilder.setup()
-      .setStatusCode(HttpCode.OK)
-      .setBody(responseBody)
-      .build();
-  } catch (err) {
-    console.error(err);
-    throw err;
-  } finally {
-    await connection.disconnect();
-  }
-};
+export default guarantee.handle;
