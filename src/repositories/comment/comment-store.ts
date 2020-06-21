@@ -54,7 +54,9 @@ export class CommentStore implements CommentRepository {
     rawComments: CommentSchema[],
   ): Promise<StoreCommentGroupEntity> {
     const storePromise = this.storeRepository.readOneById(storeId);
-    const commentPromises = rawComments.map(this.constructCommentEntity);
+    const commentPromises = rawComments.map((rawComment) =>
+      this.constructCommentEntity(rawComment),
+    );
     const allCommentPromisesInOne = Promise.all(commentPromises);
     const [store, comments] = await Promise.all([storePromise, allCommentPromisesInOne]);
 
@@ -95,7 +97,9 @@ export class CommentStore implements CommentRepository {
     rawComments: CommentSchema[],
   ): Promise<UserProfileCommentGroupEntity> {
     const profilePromise = this.userRepository.readProfileById(userId);
-    const commentPromises = rawComments.map(this.constructCommentEntity);
+    const commentPromises = rawComments.map((rawComment) =>
+      this.constructCommentEntity(rawComment),
+    );
     const allCommentPromisesInOne = Promise.all(commentPromises);
     const [userProfile, comments] = await Promise.all([profilePromise, allCommentPromisesInOne]);
 
@@ -134,6 +138,7 @@ export class CommentStore implements CommentRepository {
   }
 
   private async createManyCommentedCourses(commentId: number, courses: string[]): Promise<void> {
+    if (courses.length < 1) return;
     await this.queryAgent.batch(
       SQL_INSERT_COMMENTED_COURSES,
       courses.map((course) => [course, commentId]),
