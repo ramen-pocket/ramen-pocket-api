@@ -4,7 +4,11 @@ import { NewCommentEntity } from '../../entities/new-comment-entity';
 import { UpdatedCommentEntity } from '../../entities/updated-comment-entity';
 
 export interface CommentUsecase {
-  readManyGroupedByUserByStoreId(storeId: number): Promise<UserProfileCommentGroupEntity[]>;
+  readManyGroupedByUserByStoreId(
+    storeId: number,
+    limit: number,
+    skip: number,
+  ): Promise<UserProfileCommentGroupEntity[]>;
   readManyGroupedByStoreByUserId(userId: string): Promise<StoreCommentGroupEntity[]>;
   createOne(newComment: NewCommentEntity): Promise<number>;
   updateOne(updatedComment: UpdatedCommentEntity): Promise<void>;

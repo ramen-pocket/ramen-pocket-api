@@ -5,7 +5,11 @@ import { UpdatedCommentEntity } from '../../entities/updated-comment-entity';
 
 export interface CommentRepository {
   readManyGroupedByStoreByUserId(userId: string): Promise<StoreCommentGroupEntity[]>;
-  readManyGroupedByUserByStoreId(storeId: number): Promise<UserProfileCommentGroupEntity[]>;
+  readManyGroupedByUserByStoreId(
+    storeId: number,
+    limit: number,
+    skip: number,
+  ): Promise<UserProfileCommentGroupEntity[]>;
   createOne(newComment: NewCommentEntity): Promise<number>;
   updateOne(updatedComment: UpdatedCommentEntity): Promise<void>;
   deleteOne(id: number, userId: string, storeId: number): Promise<void>;

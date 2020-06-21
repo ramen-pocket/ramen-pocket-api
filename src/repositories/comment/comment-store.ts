@@ -15,7 +15,7 @@ import { CommentSchema, CommentedCourseSchema } from './comment-schema';
 import { Counter } from '../../utils/database-connection';
 
 const SQL_SELECT_COMMENTS_BY_USER_ID = `SELECT id, storeId, content, rate, publishedAt FROM comments WHERE userId = ? AND isDeleted = false`;
-const SQL_SELECT_COMMENTS_BY_STORE_ID = `SELECT id, userId, content, rate, publishedAt FROM comments WHERE storeId = ? AND isDeleted = false`;
+const SQL_SELECT_COMMENTS_BY_STORE_ID = `SELECT id, userId, content, rate, publishedAt FROM comments WHERE storeId = ? AND isDeleted = false LIMIT ? OFFSET ?`;
 const SQL_SELECT_COMMENTED_COURSES_BY_COMMENT_ID = `SELECT name, commentId FROM commentedCourses WHERE commentId = ?`;
 const SQL_INSERT_COMMENT = `
   INSERT INTO comments (userId, storeId, content, isDeleted, rate, publishedAt)
@@ -106,14 +106,18 @@ export class CommentStore implements CommentRepository {
     return { userProfile, comments };
   }
 
-  async readManyGroupedByUserByStoreId(storeId: number): Promise<UserProfileCommentGroupEntity[]> {
+  async readManyGroupedByUserByStoreId(
+    storeId: number,
+    limit: number,
+    skip: number,
+  ): Promise<UserProfileCommentGroupEntity[]> {
     if (!(await this.storeRepository.checkIdExistence(storeId))) {
       throw new ResourceNotFound('The store does not exist.');
     }
 
     const rawComments = await this.queryAgent.query<SelectQueryResult<CommentSchema>>(
       SQL_SELECT_COMMENTS_BY_STORE_ID,
-      [storeId],
+      [storeId, limit, skip],
     );
 
     const userCommentGroupMap = new Map<string, CommentSchema[]>();

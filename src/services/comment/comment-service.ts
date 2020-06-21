@@ -8,8 +8,12 @@ import { StoreCommentGroupEntity } from '../../entities/store-comment-group-enti
 export class CommentService implements CommentUsecase {
   public constructor(private readonly commentRepository: CommentRepository) {}
 
-  async readManyGroupedByUserByStoreId(storeId: number): Promise<UserProfileCommentGroupEntity[]> {
-    return this.commentRepository.readManyGroupedByUserByStoreId(storeId);
+  async readManyGroupedByUserByStoreId(
+    storeId: number,
+    limit: number,
+    skip: number,
+  ): Promise<UserProfileCommentGroupEntity[]> {
+    return this.commentRepository.readManyGroupedByUserByStoreId(storeId, limit, skip);
   }
 
   async readManyGroupedByStoreByUserId(userId: string): Promise<StoreCommentGroupEntity[]> {
