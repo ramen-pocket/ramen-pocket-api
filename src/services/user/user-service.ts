@@ -29,6 +29,8 @@ export class UserService implements UserUsecase {
     const info = await this.thirdPartySignInProvider.verifyToken(token);
     const expire = this.dateProvider.addUtcDaysFromNow(LOCAL_EXPIRE_DAYS);
     if (await this.userRepository.checkIdExistence(info.userId)) {
+      await this.userRepository.updateTokenById(info.userId, token, info.expire, expire);
+    } else {
       await this.userRepository.createUser({
         id: info.userId,
         name: info.name,
@@ -39,9 +41,8 @@ export class UserService implements UserUsecase {
         tokenExpire: info.expire,
         expire: expire,
       });
-    } else {
-      await this.userRepository.updateTokenById(info.userId, token, info.expire, expire);
     }
+
     return info.userId;
   }
 

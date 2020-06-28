@@ -20,7 +20,10 @@ export class PostStoreCommentHandler implements RequestHandler {
     const { storeId: rawStoreId } = event.pathParameters;
     const storeId = new IntegerValidator(STORE_ID_VALIDATOR_CONFIG).validate(rawStoreId);
     const postStoreCommentDto: PostStoreCommentDto = new PostStoreCommentBodyValidator().validate(
-      event.body,
+      JSON.stringify({
+        ...JSON.parse(event.body),
+        courses: [],
+      }),
     );
 
     const newCommentEntity: NewCommentEntity = {
